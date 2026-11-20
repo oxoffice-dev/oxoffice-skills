@@ -1,0 +1,14 @@
+{
+  "name": "oxoffice",
+  "displayName": "oxoffice",
+  "description": "Read, write, edit, review and render Word and PowerPoint files with the oxoffice CLI and Python package.",
+  "author": {"name": "oxoffice contributors"},
+  "homepage": "https://github.com/oxoffice-dev/oxoffice-skills",
+  "repository": "https://github.com/oxoffice-dev/oxoffice-skills",
+  "license": "MIT",
+  "icon": "./assets/icon.png",
+  "documentationUrl": "https://github.com/oxoffice-dev/oxoffice-skills#readme",
+  "supportUrl": "https://github.com/oxoffice-dev/oxoffice-skills/issues",
+  "privacyPolicyUrl": "https://github.com/oxoffice-dev/oxoffice-skills/blob/main/PRIVACY.md",
+  "keywords": ["docx", "pptx", "word", "powerpoint", "office", "oxoffice", "redline", "pdf"]
+}
