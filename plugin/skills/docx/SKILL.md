@@ -23,8 +23,8 @@ $O/python my_script.py       # the Python that has oxoffice; `import docx_ops` w
 ```
 
 `install.py` installs the release named in `../../oxoffice.json` when missing (the GitHub wheel, SHA-256
-checked) and exits 0 once there; never `pip install` oxoffice yourself. Shell variables rarely persist
-across commands: repeat the `O=` and `export` lines. Never alias `oxoffice.docx` as `docx`
+checked) and exits 0 once there; other channels (PyPI, conda, curl): `references/install.md`. Repeat the `O=` and
+`export` lines in each new shell. Never alias `oxoffice.docx` as `docx`
 (python-docx). **Windows**: Git Bash, `python` (or `py -3`) for `python3`, `Scripts` for `bin` in `O=`;
 `$O/oxoffice` reaches `oxoffice.exe`.
 

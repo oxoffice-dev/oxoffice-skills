@@ -50,6 +50,18 @@ The first time a skill runs, `plugin/scripts/install.py` downloads the oxoffice 
 [`plugin/oxoffice.json`](plugin/oxoffice.json) for your platform (Linux, macOS, Windows), checks it and installs it
 in its own Python environment under `~/.local/share/oxoffice-skills`. Nothing else to set up.
 
+oxoffice itself is also available on its own, for use outside the skills:
+
+| Channel | Command |
+| --- | --- |
+| 🐍 PyPI | `pip install oxoffice`, `uv add oxoffice` or `uv tool install oxoffice` |
+| 🟢 conda | `pixi global install -c https://prefix.dev/hadim/oxoffice -c conda-forge oxoffice` |
+| 🐚 Shell installer | `curl -fsSL https://github.com/oxoffice-dev/oxoffice/releases/latest/download/install.sh \| sh` |
+| 🪟 Windows installer | `powershell -ExecutionPolicy Bypass -c "irm https://github.com/oxoffice-dev/oxoffice/releases/latest/download/install.ps1 \| iex"` |
+| 📦 GitHub release | the [releases page](https://github.com/oxoffice-dev/oxoffice/releases), with checksums and a signed build provenance |
+
+Details in [`plugin/skills/docx/references/install.md`](plugin/skills/docx/references/install.md).
+
 ## 🧩 What is inside
 
 | Path | What |
