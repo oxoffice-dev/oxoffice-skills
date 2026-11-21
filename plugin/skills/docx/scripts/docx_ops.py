@@ -33,7 +33,7 @@ class EditError(RuntimeError):
 def _new_output(out):
     """Refuse an output that exists already, the way the oxoffice CLI does."""
     if Path(out).exists():
-        raise EditError(f"{out} exists: write to a new path, check it, then replace")
+        raise EditError(f"{out} exists: write to a new path")
 
 
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -334,6 +334,9 @@ def strip_generated_bookmarks(src, out, prefix="_Toc"):
     os.close(fd)
     try:
         _strip(data_in, tmp, removed, start)
+        umask = os.umask(0)
+        os.umask(umask)
+        os.chmod(tmp, 0o666 & ~umask)   # mkstemp makes it private; give it a new file's usual mode
         os.replace(tmp, out)
     finally:
         if os.path.exists(tmp):
