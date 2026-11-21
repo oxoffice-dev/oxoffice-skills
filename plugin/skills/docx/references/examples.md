@@ -314,17 +314,16 @@ ox docx convert redline.docx --to pdf --revision-view tracked --revision-style l
 The redline holds only the edit, in every story (`revision list` shows each revision's story), and
 `--granularity word` marks only the changed words (the default, `run`, deletes and re-inserts the whole
 run). In Python: `v1.compare(v2, "Reviewer", timestamp, granularity="word")`. Compare before rebuilding the
-TOC: a TOC rebuilt on the edited side adds its entries to the redline as revisions. Two versions generated again
-from scratch name their heading bookmarks `_Toc1`, `_Toc2`, ... in order, so a heading added before others moves
-the names and `compare` refuses (`oxoffice limitations docx`, docx-compare-toc-bookmarks): compare copies without them.
+TOC: a TOC rebuilt on the edited side adds its entries to the redline as revisions. Word renames the `_Toc`
+heading bookmarks and renumbers bookmark ids when it rebuilds or saves; `compare` gives the edited side the
+original's ids and names first, so two such versions compare as they are.
 
 ```python
-import docx_ops, oxoffice.docx
-for name in ("v1", "v2"):
-    docx_ops.strip_generated_bookmarks(f"{name}.docx", f"{name}-nobm.docx")  # only the _Toc bookmarks go
-v1 = oxoffice.docx.Document.open("v1-nobm.docx")
-v1.compare(oxoffice.docx.Document.open("v2-nobm.docx"), "Reviewer", "2026-09-27T12:00:00Z", granularity="word")
-v1.save("redline-nobm.docx")
+import oxoffice.docx
+v1 = oxoffice.docx.Document.open("v1.docx")         # v1 becomes the redline; compare a copy to keep it
+v1.compare(oxoffice.docx.Document.open("v2.docx"), "Reviewer", "2026-09-27T12:00:00Z", granularity="word")
+print([(r.kind, r.author, r.story.kind) for r in v1.revisions])
+v1.save("redline-py.docx")
 ```
 
 To show the redline outside Word, render it with `--revision-view tracked` (Python

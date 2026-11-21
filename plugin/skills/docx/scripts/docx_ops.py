@@ -9,10 +9,7 @@ Exit codes: 0 done, 1 refused (nothing written), 2 usage.
 """
 import argparse
 import io
-import os
-import re
 import sys
-import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime, timezone
@@ -32,18 +29,11 @@ def _new_output(out):
 
 
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+
+
 def _now():
     """The current UTC time as an RFC 3339 string, the form oxoffice takes for comment dates."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _package(source):
-    """The .docx bytes of a Document, bytes, or a path."""
-    if hasattr(source, "to_bytes"):
-        return source.to_bytes()
-    if isinstance(source, (bytes, bytearray)):
-        return bytes(source)
-    return Path(source).read_bytes()
 
 
 def _starts(text, anchor):
@@ -202,58 +192,6 @@ def comment_on_text(doc, anchor, text, author, initials=None, occurrence=1, date
     if in_tables:
         return doc.add_comment_on_text(anchor, author=author, text=text, occurrence=k, initials=initials, date=date)
     return _comment(doc, anchor, text, author, initials, occurrence, date)
-
-
-_BOOKMARK_START = re.compile(r"<w:bookmarkStart\b[^>]*/>")
-
-
-def strip_generated_bookmarks(src, out, prefix="_Toc"):
-    """Copy the .docx `src` (a path, bytes or a Document) to `out` without the body bookmarks whose name starts
-    with `prefix` (start and end markers), and return how many it removed. A table of contents rebuilt from
-    scratch names its heading bookmarks `_Toc1`, `_Toc2`, ... in document order, so between two versions where a
-    heading was added or removed a name moves to another heading, and `compare` refuses the pair
-    (`oxoffice limitations docx`, docx-compare-toc-bookmarks): run this on both copies first. The TOC's links then
-    point at no bookmark in the redline; rebuild the TOC on the accepted result. Refuses an existing `out`, and
-    writes it through a temporary file."""
-    _new_output(out)
-    removed = []
-
-    def start(match):
-        element = match.group(0)
-        name = re.search(r'\bw:name="([^"]*)"', element)
-        ident = re.search(r'\bw:id="([^"]*)"', element)
-        if name and ident and name.group(1).startswith(prefix):
-            removed.append(ident.group(1))
-            return ""
-        return element
-
-    data_in = _package(src)
-    fd, tmp = tempfile.mkstemp(prefix=".bookmarks.", suffix=".docx", dir=Path(out).resolve().parent)
-    os.close(fd)
-    try:
-        _strip(data_in, tmp, removed, start)
-        umask = os.umask(0)
-        os.umask(umask)
-        os.chmod(tmp, 0o666 & ~umask)   # mkstemp makes it private; give it a new file's usual mode
-        os.replace(tmp, out)
-    finally:
-        if os.path.exists(tmp):
-            os.remove(tmp)
-    return len(removed)
-
-
-def _strip(data_in, out, removed, start):
-    with zipfile.ZipFile(io.BytesIO(data_in)) as zin, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
-        for item in zin.infolist():
-            data = zin.read(item.filename)
-            if item.filename == "word/document.xml":
-                xml = _BOOKMARK_START.sub(start, data.decode("utf-8"))
-                ids = set(removed)
-                xml = re.sub(r"<w:bookmarkEnd\b[^>]*/>",
-                             lambda m: "" if (re.search(r'\bw:id="([^"]*)"', m.group(0)) or [None, None])[1] in ids
-                             else m.group(0), xml)
-                data = xml.encode("utf-8")
-            zout.writestr(item, data)
 
 
 def main():
