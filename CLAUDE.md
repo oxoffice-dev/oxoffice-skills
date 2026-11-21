@@ -24,7 +24,8 @@ Public repository: nothing specific to a company, a project or a person goes in 
    block of both `examples.md` on each push to oxoffice's `main`, against the wheel just built, from this
    repository's default branch, and checks that every name the skills cite exists (oxoffice
    `tests/skills/README.md` says how to run it locally). Run it before pushing a change to the skills.
-3. An example reads `report.docx` or `deck.pptx` and writes new files; `$OX` is the CLI, `$PY` the Python, and
-   blocks run in order in one folder. Known limits come from `oxoffice limitations docx|pptx`, not from a page here.
+3. An example reads `report.docx` or `deck.pptx` and writes new files; `ox` is the CLI, `oxpy` the Python (shell
+   functions, which work in bash and zsh), and blocks run in order in one folder. Known limits come from
+   `oxoffice limitations docx|pptx`, not from a page here.
 4. Conventional commits, lowercase subject. Never commit or push unless asked. No attribution lines.
 5. Never leave a document open in Word, PowerPoint or another GUI app.

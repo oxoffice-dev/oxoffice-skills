@@ -1,17 +1,17 @@
 # pptx examples
 
 Every block runs on each push to oxoffice's `main`, against the wheel and the CLI just built. Conventions, as set
-up in SKILL.md: `$OX` runs the CLI, `SKILL` is this skill's folder, and Python blocks run with
-`PYTHONPATH="$SKILL/scripts" $PY`, so that `import pptx_ops` works. `deck.pptx` is the input;
+up in SKILL.md: `ox` runs the CLI, `SKILL` is this skill's folder, and Python blocks run with
+`PYTHONPATH="$SKILL/scripts" oxpy`, so that `import pptx_ops` works. `deck.pptx` is the input;
 `Aileron-Regular.ttf` (a CC0-1.0 font) and `photo.png` stand for files the user supplies; outputs go to new files.
 Blocks run in order in one folder.
 
 ## Read the deck
 
 ```bash
-$OX pptx outline --notes deck.pptx
-$OX pptx text --json deck.pptx > deck.json
-$OX pptx inspect --json deck.pptx > structure.json     # slide_details: every shape, groups' children included
+ox pptx outline --notes deck.pptx
+ox pptx text --json deck.pptx > deck.json
+ox pptx inspect --json deck.pptx > structure.json     # slide_details: every shape, groups' children included
 ```
 
 ```python
@@ -26,7 +26,7 @@ for k, slide in enumerate(prs.slides):
 ## Counted replacements, all or nothing
 
 ```bash
-$OX pptx replace deck.pptx -p "2 April 2025" -v "9 April 2025" --expect 1 -o dated.pptx
+ox pptx replace deck.pptx -p "2 April 2025" -v "9 April 2025" --expect 1 -o dated.pptx
 ```
 
 ```python
@@ -153,8 +153,8 @@ prs.save("imported.pptx")
 ## Merge decks, or import slides with their own formatting
 
 ```bash
-$OX pptx slide import deck.pptx deck.pptx --slides 2-3 --at 2 --json -o merged.pptx   # SOURCE may be any deck
-$OX pptx slide import deck.pptx deck.pptx --keep-source-formatting -o appended.pptx    # every slide, at the end
+ox pptx slide import deck.pptx deck.pptx --slides 2-3 --at 2 --json -o merged.pptx   # SOURCE may be any deck
+ox pptx slide import deck.pptx deck.pptx --keep-source-formatting -o appended.pptx    # every slide, at the end
 ```
 
 ```python
@@ -188,13 +188,13 @@ prs.save("picture.pptx")
 ## One-shot slide edits, footers and metadata from the CLI
 
 ```bash
-$OX pptx slide add deck.pptx --layout "Title Only" --at 8 -o s1.pptx    # layout name or one-based number
-$OX pptx slide move s1.pptx 6 --to 5 -o s2.pptx
-$OX pptx notes set s2.pptx 8 --text "Questions from the board." -o s3.pptx
-$OX pptx footer s3.pptx --slide-number --footer "Riverton Footbridge" --skip-title -o s4.pptx
-$OX pptx meta set s4.pptx --title "Footbridge options" --author "Claude" -o s5.pptx
-$OX pptx meta get s5.pptx
-$OX pptx fit --json s5.pptx > fit.json || [ $? -eq 1 ]      # exit 1: a frame overflows or cannot be assessed (fit.json)
+ox pptx slide add deck.pptx --layout "Title Only" --at 8 -o s1.pptx    # layout name or one-based number
+ox pptx slide move s1.pptx 6 --to 5 -o s2.pptx
+ox pptx notes set s2.pptx 8 --text "Questions from the board." -o s3.pptx
+ox pptx footer s3.pptx --slide-number --footer "Riverton Footbridge" --skip-title -o s4.pptx
+ox pptx meta set s4.pptx --title "Footbridge options" --author "Claude" -o s5.pptx
+ox pptx meta get s5.pptx
+ox pptx fit --json s5.pptx > fit.json || [ $? -eq 1 ]      # exit 1: a frame overflows or cannot be assessed (fit.json)
 ```
 
 ## Brand a deck: theme, logo, slide numbers, transitions, alt text
@@ -263,11 +263,11 @@ prs.save("raw.pptx")
 ## Comments
 
 ```bash
-$OX pptx comment add deck.pptx --slide 4 --author "Reviewer" --text "Source for the costs?" --date 2026-09-27T12:00:00Z -o c1.pptx
-ID=$($OX pptx comment list --json c1.pptx | $PY -c 'import json,sys; print(json.load(sys.stdin)["comments"][0]["id"])')
-$OX pptx comment reply c1.pptx --id "$ID" --author "Author" --text "Framework rates, 2025." --date 2026-09-27T12:05:00Z -o c2.pptx
-$OX pptx comment resolve c2.pptx --id "$ID" -o c3.pptx
-$OX pptx comment list c3.pptx
+ox pptx comment add deck.pptx --slide 4 --author "Reviewer" --text "Source for the costs?" --date 2026-09-27T12:00:00Z -o c1.pptx
+ID=$(ox pptx comment list --json c1.pptx | oxpy -c 'import json,sys; print(json.load(sys.stdin)["comments"][0]["id"])')
+ox pptx comment reply c1.pptx --id "$ID" --author "Author" --text "Framework rates, 2025." --date 2026-09-27T12:05:00Z -o c2.pptx
+ox pptx comment resolve c2.pptx --id "$ID" -o c3.pptx
+ox pptx comment list c3.pptx
 ```
 
 ## Shape links, slide jumps, a comment on a shape
@@ -289,11 +289,11 @@ prs.save("links.pptx")
 ## Check the fit, then render
 
 ```bash
-$OX pptx fit deck.pptx || [ $? -eq 1 ]            # exit 1: a frame overflows (or cannot be assessed)
+ox pptx fit deck.pptx || [ $? -eq 1 ]            # exit 1: a frame overflows (or cannot be assessed)
 slides=$(mktemp -d)                           # render into a new folder each time
-$OX pptx render deck.pptx -o "$slides" --slide 5 --dpi 80
-$OX pptx convert deck.pptx --to pdf -o deck.pdf   # a new path: convert --to pdf overwrites
-$OX pptx validate deck.pptx
+ox pptx render deck.pptx -o "$slides" --slide 5 --dpi 80
+ox pptx convert deck.pptx --to pdf -o deck.pdf   # a new path: convert refuses an existing output without --force
+ox pptx validate deck.pptx
 ```
 
 ```python
@@ -346,8 +346,8 @@ prs.save("chart.pptx")
 ## Markdown or HTML of a deck
 
 ```bash
-$OX pptx convert deck.pptx --to md --notes --skip-hidden -o deck.md    # one section per slide, notes as quotes
-$OX pptx convert deck.pptx --to html -o deck.html                      # pictures embedded, a section per slide
+ox pptx convert deck.pptx --to md --notes --skip-hidden -o deck.md    # one section per slide, notes as quotes
+ox pptx convert deck.pptx --to html -o deck.html                      # pictures embedded, a section per slide
 ```
 
 `prs.to_markdown(include_notes=True, skip_hidden=True)` and `prs.to_html()` return the same text from Python.
@@ -360,10 +360,10 @@ checks retain uncompressed EOT and use genuine regular and bold faces. Verify
 the delivered file after resaving it in the receiving application.
 
 ```bash
-$OX pptx font embed deck.pptx --font Aileron-Regular.ttf --name Aileron --license-authorized \
+ox pptx font embed deck.pptx --font Aileron-Regular.ttf --name Aileron --license-authorized \
     --license-identity "CC0-1.0: Aileron" -o embedded.pptx --json
-$OX pptx font list --json embedded.pptx                    # actual EOT part, stored length and decoded length
-$OX pptx font settings embedded.pptx --json
+ox pptx font list --json embedded.pptx                    # actual EOT part, stored length and decoded length
+ox pptx font settings embedded.pptx --json
 ```
 
 ```python

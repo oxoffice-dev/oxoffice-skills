@@ -1,25 +1,25 @@
 # docx examples
 
 Every block runs on each push to oxoffice's `main`, against the wheel and the CLI just built. Conventions, as set
-up in SKILL.md: `$OX` runs the CLI, `SKILL` is this skill's folder, and Python blocks run with
-`PYTHONPATH="$SKILL/scripts" $PY`, so that `import docx_ops` works. `report.docx` is the input;
+up in SKILL.md: `ox` runs the CLI, `SKILL` is this skill's folder, and Python blocks run with
+`PYTHONPATH="$SKILL/scripts" oxpy`, so that `import docx_ops` works. `report.docx` is the input;
 `Aileron-Regular.ttf` (a CC0-1.0 font) and `photo.png` stand for files the user supplies; outputs go to new files.
 Blocks run in order in one folder: a later block may read a file an earlier one wrote.
 
 ## Read the text and find where things are
 
 ```bash
-$OX docx text --json report.docx > report.json        # body and tables, then the other stories in "stories"
-$PY "$SKILL/scripts/docx_ops.py" text report.docx > all-stories.txt   # every paragraph with its part and style
-$PY "$SKILL/scripts/docx_ops.py" count report.docx "footbridge"
-$OX docx layout --json report.docx > layout.json
+ox docx text --json report.docx > report.json        # body and tables, then the other stories in "stories"
+oxpy "$SKILL/scripts/docx_ops.py" text report.docx > all-stories.txt   # every paragraph with its part and style
+oxpy "$SKILL/scripts/docx_ops.py" count report.docx "footbridge"
+ox docx layout --json report.docx > layout.json
 ```
 
 Plain `oxoffice docx text` shows the same accepted view (tracked insertions in, deletions out): the body, then each
 other part (text boxes, headers, footers, notes, comments) under a `--- kind (part) ---` line.
 
 ```python
-import docx_ops, oxoffice.docx
+import docx_ops, json, oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 # flow index, style and text of every heading
 heads = [(i, p.style, p.text) for i, p in enumerate(doc.paragraphs) if (p.style or "").startswith("Heading")]
@@ -27,8 +27,8 @@ heads = [(i, p.style, p.text) for i, p in enumerate(doc.paragraphs) if (p.style 
 i = next(i for i, _, t in heads if t == "Recommendations")
 bi = doc.find_content_index(doc.paragraphs[i])
 page = next(f.physical_page for f in doc.layout() if f.body_index == bi)
-# every paragraph of the table cells (nested tables: cell.tables)
-cells = [p for t in doc.tables for row in t.rows for c in row.cells for p in c.paragraphs]
+# every paragraph of the table cells, with its path, from the CLI's JSON of the bash block above
+cells = [p for p in json.load(open("report.json"))["paragraphs"] if len(p["path"]) > 1]
 # headers and footers, one story per variant part
 footers = [t for kind, t in docx_ops.all_text(doc) if kind == "footer"]
 print(len(heads), bi, page, len(cells), footers)
@@ -37,7 +37,7 @@ print(len(heads), bi, page, len(cells), footers)
 ## Counted replacements, all or nothing
 
 ```bash
-$OX docx replace report.docx -p "Issue B" -v "Issue C" --expect 2 -o issue-c.docx
+ox docx replace report.docx -p "Issue B" -v "Issue C" --expect 2 -o issue-c.docx
 ```
 
 ```python
@@ -52,7 +52,7 @@ docx_ops.replace_batch("report.docx", "edited.docx", [
 stay out of reach of the replacement (a match across the edge of a content control, a tracked insertion or
 a simple field). The message says where they are. `doc.replace_all([(old, new, n), ...])` and `oxoffice docx
 replace` check the counts, all or nothing, but not what is left. The command line equivalent:
-`$PY "$SKILL/scripts/docx_ops.py" replace IN OUT --edit OLD NEW COUNT --edit ...`.
+`oxpy "$SKILL/scripts/docx_ops.py" replace IN OUT --edit OLD NEW COUNT --edit ...`.
 
 ## Replace in one paragraph or one table cell
 
@@ -241,6 +241,7 @@ from datetime import datetime, timezone
 now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")   # the date form comments take
 doc = oxoffice.docx.Document.open("report.docx")
 doc, cid = docx_ops.commented(doc, "about 12 mm", "Measured against which reference?", "Reviewer", "RV")  # a checked copy
+# the copy does not remember report.docx: its save does not refuse that file, so give a new path
 rid = doc.reply_to(cid, author="Author", text="The 2019 survey marks.", date=now)
 doc.resolve_comment(cid)
 docx_ops.comment_on_text(doc, "spalled concrete", "Which face of the pier?", "Reviewer", in_tables=True)  # part of a cell
@@ -261,9 +262,9 @@ nested tables included, and the comment covers exactly the anchor inside the cel
 `date=` writes an undated comment.
 
 ```bash
-$OX docx comment list --json commented.docx
-$PY "$SKILL/scripts/docx_ops.py" comment report.docx commented-cli.docx --anchor "about 12 mm" --text "Which reference?" --author "Reviewer"
-$PY "$SKILL/scripts/docx_ops.py" comment report.docx commented-cell.docx --anchor "spalled concrete" --in-tables --text "Which face?" --author "Reviewer"
+ox docx comment list --json commented.docx
+oxpy "$SKILL/scripts/docx_ops.py" comment report.docx commented-cli.docx --anchor "about 12 mm" --text "Which reference?" --author "Reviewer"
+oxpy "$SKILL/scripts/docx_ops.py" comment report.docx commented-cell.docx --anchor "spalled concrete" --in-tables --text "Which face?" --author "Reviewer"
 ```
 
 ## Review pass: what each comment is on, move a thread, delete a paragraph
@@ -282,9 +283,9 @@ doc.save("reviewed.docx")
 ```
 
 ```bash
-$OX docx comment list --json reviewed.docx                # anchor_text and anchor of each comment
-$OX docx comment move commented.docx 0 --text "bearing positions" -o moved-cli.docx --json
-$OX docx validate reviewed.docx                          # exit 1 for a comment left without an anchor
+ox docx comment list --json reviewed.docx                # anchor_text and anchor of each comment
+ox docx comment move commented.docx 0 --text "bearing positions" -o moved-cli.docx --json
+ox docx validate reviewed.docx                          # exit 1 for a comment left without an anchor
 ```
 
 Removing content never leaves a comment pointing at nothing: a comment the removed block covers whole goes
@@ -297,11 +298,11 @@ covers whole the same way.
 
 ```bash
 cp report.docx v1.docx
-$OX docx replace v1.docx -p "three points lower" -v "two points lower" --expect 1 -o v2.docx
-$OX docx compare v1.docx v2.docx --author "Reviewer" --timestamp 2026-09-27T12:00:00Z --granularity word -o redline.docx --json
-$OX docx revision list --json redline.docx
-$OX docx revision accept redline.docx --author "Reviewer" -o accepted.docx --json
-$OX docx convert redline.docx --to pdf --revision-view tracked --revision-style legal -o redline-tracked.pdf
+ox docx replace v1.docx -p "three points lower" -v "two points lower" --expect 1 -o v2.docx
+ox docx compare v1.docx v2.docx --author "Reviewer" --timestamp 2026-09-27T12:00:00Z --granularity word -o redline.docx --json
+ox docx revision list --json redline.docx
+ox docx revision accept redline.docx --author "Reviewer" -o accepted.docx --json
+ox docx convert redline.docx --to pdf --revision-view tracked --revision-style legal -o redline-tracked.pdf
 ```
 
 The redline holds only the edit, in every story (`revision list` shows each revision's story), and
@@ -328,7 +329,7 @@ red, moves green). The default PDF is the accepted view.
 ## Table of contents and page fields
 
 ```bash
-$OX docx toc rebuild report.docx -o toc.docx
+ox docx toc rebuild report.docx -o toc.docx
 ```
 
 ```python
@@ -374,11 +375,11 @@ print(rep.entry_count)
 ## Check what you changed
 
 ```bash
-$PY "$SKILL/scripts/docx_ops.py" replace report.docx checked.docx --edit "three points lower" "two points lower" 1
-$OX docx validate checked.docx
-$OX docx diff report.docx checked.docx
+oxpy "$SKILL/scripts/docx_ops.py" replace report.docx checked.docx --edit "three points lower" "two points lower" 1
+ox docx validate checked.docx
+ox docx diff report.docx checked.docx
 pages=$(mktemp -d)                                       # render into a new folder each time
-$OX docx render checked.docx -o "$pages" --pages 1-3 --dpi 80
+ox docx render checked.docx -o "$pages" --pages 1-3 --dpi 80
 ls "$pages"
 ```
 
@@ -537,9 +538,9 @@ that does not pass it. `reset_form(rules)` writes each rule's reset value back.
 
 ```bash
 printf '# Site visit\n\nVisited on **27 September**.\n\n- bearings\n- deck joints\n\n| Item | State |\n|---|---|\n| Pier 2 | Good |\n' > visit.md
-$OX docx convert visit.md --template report.docx -o visit.docx 2> visit-warnings.txt   # styles, headers, footers of report.docx
+ox docx convert visit.md --template report.docx -o visit.docx 2> visit-warnings.txt   # styles, headers, footers of report.docx
 cat visit-warnings.txt                                     # "Warning: line N: ..." for what was dropped
-$OX docx validate visit.docx
+ox docx validate visit.docx
 ```
 
 ```python
@@ -582,10 +583,10 @@ take. `doc.charts` reads every chart of a document back, in body order.
 First check that the font's licence allows embedding (SKILL.md, rule 10); here Aileron, CC0-1.0.
 
 ```bash
-$OX docx font embed report.docx --font Aileron-Regular.ttf --name Aileron --license-authorized \
+ox docx font embed report.docx --font Aileron-Regular.ttf --name Aileron --license-authorized \
     --license-identity "CC0-1.0: Aileron" -o embedded.docx --json
-$OX docx font list --json embedded.docx                    # actual ODTTF part, stored length and decoded length
-$OX docx font settings embedded.docx --json
+ox docx font list --json embedded.docx                    # actual ODTTF part, stored length and decoded length
+ox docx font settings embedded.docx --json
 ```
 
 ```python

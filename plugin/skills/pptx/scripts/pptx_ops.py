@@ -1,6 +1,6 @@
 """The one helper oxoffice 0.1.0 does not offer yet: every shape of a slide, groups included. It goes away when
 oxoffice gains `Shapes.walk()` (oxoffice specs/2026-11-20-skill-helpers-in-the-library.md). Import it from a script
-run with the Python that has oxoffice (`$PY`, this folder on PYTHONPATH). From the command line,
+run with the Python that has oxoffice (`oxpy`, this folder on PYTHONPATH). From the command line,
 `oxoffice pptx inspect --json DECK` gives the same tree (`slide_details`, `shape_details`, `children`).
 """
 

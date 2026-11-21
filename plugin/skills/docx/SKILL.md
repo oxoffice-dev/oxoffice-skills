@@ -12,30 +12,31 @@ for anything finer. Use them for every .docx task. Names follow python-docx wher
 
 ## Setup, once per session
 
-Written for **oxoffice 0.1.0**. Take the first way that works, keep it for the session. `$OX` runs the CLI, `$PY`
-the Python that imports oxoffice. Shell variables do not survive between tool calls: start each command with them.
+Written for **oxoffice 0.1.0**. Take the first way that works, keep it for the session. Each way defines two shell
+functions, `ox` (the CLI) and `oxpy` (a Python that imports oxoffice), in bash and zsh alike. Shell state does not
+survive between tool calls: start every command with your way's definitions.
 
 1. **Already installed**: `oxoffice --version` prints `oxoffice 0.1.0` and `python3 -c "import oxoffice;
-   print(oxoffice.__version__)"` prints `0.1.0`: `OX=oxoffice; PY=python3`. Another version: leave it alone.
-2. **uv**: `OX="uvx --from oxoffice==0.1.0 oxoffice"; PY="uv run --no-project --with oxoffice==0.1.0 python"`.
-3. **pip in a virtual environment**, made once, outside the user's folder:
+   print(oxoffice.__version__)"` prints `0.1.0`: `ox() { oxoffice "$@"; }; oxpy() { python3 "$@"; }`. Another
+   version: leave it alone.
+2. **uv**: `ox() { uvx --python '>=3.10' --from oxoffice==0.1.0 oxoffice "$@"; }`,
+   `oxpy() { uv run --no-project --python '>=3.10' --with oxoffice==0.1.0 python "$@"; }`.
+3. **pip in a virtual environment** of its own, made once (`$V/Scripts` on Windows):
 
    ```bash
    V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0"
    [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.1.0; }
-   OX="$V/bin/oxoffice"; PY="$V/bin/python"
+   ox() { "$V/bin/oxoffice" "$@"; }; oxpy() { "$V/bin/python" "$@"; }
    ```
 
-4. **pixi** (conda: `references/install.md`):
-   `X="pixi exec -c https://prefix.dev/hadim/oxoffice -c conda-forge -s oxoffice==0.1.0"; OX="$X oxoffice"; PY="$X python"`.
-5. **The CLI alone**, no Python: the release's installer, `references/install.md`. Steps that need Python go to 6.
+4. **pixi or conda**, then 5. **the CLI alone** (no Python: Python steps go to 6): `references/install.md`.
 6. **Nothing works** (no network, no build for this platform): tell the user in one line that oxoffice is not
    available here, and do the task with the built-in `docx` skill.
 
 ```bash
-$OX docx text --json report.docx
-$PY my_script.py                                   # or: $PY - <<'EOF' ... EOF
-PYTHONPATH="$SKILL/scripts" $PY my_script.py       # when the script imports docx_ops
+ox docx text --json report.docx
+oxpy my_script.py                                   # or: oxpy - <<'EOF' ... EOF
+PYTHONPATH="$SKILL/scripts" oxpy my_script.py       # when the script imports docx_ops
 ```
 
 `SKILL` is the folder of this SKILL.md (the base directory shown when it loaded); `scripts/docx_ops.py` holds the
@@ -43,9 +44,10 @@ helpers oxoffice 0.1.0 lacks. Never alias `oxoffice.docx` as `docx` (python-docx
 
 ## Rules that prevent damage
 
-1. **Never write over the input.** Write to a new path, check it, then replace the original. `doc.save(out)`
-   refuses the file the document was opened from; the editing commands refuse an existing output (`render`,
-   `convert`: `--force`, never for their input). Render into a new folder each time.
+1. **Never write over the input.** Write to a new path, check it, and replace the original only if the user wants
+   it. `doc.save(out)` refuses the file a document was opened from, not a `from_bytes` copy (`docx_ops.commented`
+   returns one). The editing commands refuse an existing output (`render`, `convert`: `--force`, never for their
+   input). Render into a new folder each time.
 2. **Every edit declares its expected count**, all or nothing: `docx_ops.replace_batch(src, out, [(old, new, n),
    ...])` also refuses when the text is still there afterwards; `doc.replace_all([(old, new, n)])` and `oxoffice
    docx replace ... --expect N` do not check that (`references/cli.md`, Editing).
@@ -77,7 +79,7 @@ helpers oxoffice 0.1.0 lacks. Never alias `oxoffice.docx` as `docx` (python-docx
 
 ## What to use for what
 
-`oxoffice` below is `$OX`; Python runs with `$PY`.
+`oxoffice` below is `ox`; Python runs with `oxpy`.
 
 | Task | CLI | Python (`oxoffice.docx`) | Notes |
 |---|---|---|---|
@@ -124,11 +126,11 @@ helpers oxoffice 0.1.0 lacks. Never alias `oxoffice.docx` as `docx` (python-docx
 
 Signatures: `references/cli.md`, `references/python-api.md` (`grep -n NAME` them); tested examples per row:
 `references/examples.md`. Not everything is listed: before concluding that oxoffice cannot do it, `grep -n -i WORD`
-its stubs (`_native.pyi`, beside `$PY -c "import oxoffice.docx as m; print(m.__file__)"`) and `$OX docx CMD --help`.
+its stubs (`_native.pyi`, beside `oxpy -c "import oxoffice.docx as m; print(m.__file__)"`) and `ox docx CMD --help`.
 
 ## When oxoffice cannot do a step
 
-`$OX limitations docx` (`oxoffice.limitations("docx")`) lists what this build cannot do yet, each with its
+`ox limitations docx` (`oxoffice.limitations("docx")`) lists what this build cannot do yet, each with its
 workaround and issue. When a step is blocked:
 
 1. Search the stubs, `--help` and the limitations, then say so in one line to the user.
@@ -143,4 +145,4 @@ When oxoffice fails, refuses, loses data, renders wrong, or lacks an API you nee
 list it: reduce it to a **neutral reproduction**, a short script that builds its own input (python-docx is fine)
 and prints the wrong result next to the expected one, never the user's document, text, names or paths. Ask the
 user, then write it as `oxoffice-findings/YYYY-MM-DD-<slug>.md` in the working folder (what, expected, observed,
-the script, `$OX --version`), or give it in the reply. Do not open issues yourself.
+the script, `ox --version`), or give it in the reply. Do not open issues yourself.

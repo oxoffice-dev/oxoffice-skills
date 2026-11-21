@@ -12,30 +12,31 @@ for every .pptx task. `oxoffice limitations pptx` lists what it cannot do yet; r
 
 ## Setup, once per session
 
-Written for **oxoffice 0.1.0**. Take the first way that works, keep it for the session. `$OX` runs the CLI, `$PY`
-the Python that imports oxoffice. Shell variables do not survive between tool calls: start each command with them.
+Written for **oxoffice 0.1.0**. Take the first way that works, keep it for the session. Each way defines two shell
+functions, `ox` (the CLI) and `oxpy` (a Python that imports oxoffice), in bash and zsh alike. Shell state does not
+survive between tool calls: start every command with your way's definitions.
 
 1. **Already installed**: `oxoffice --version` prints `oxoffice 0.1.0` and `python3 -c "import oxoffice;
-   print(oxoffice.__version__)"` prints `0.1.0`: `OX=oxoffice; PY=python3`. Another version: leave it alone.
-2. **uv**: `OX="uvx --from oxoffice==0.1.0 oxoffice"; PY="uv run --no-project --with oxoffice==0.1.0 python"`.
-3. **pip in a virtual environment**, made once, outside the user's folder:
+   print(oxoffice.__version__)"` prints `0.1.0`: `ox() { oxoffice "$@"; }; oxpy() { python3 "$@"; }`. Another
+   version: leave it alone.
+2. **uv**: `ox() { uvx --python '>=3.10' --from oxoffice==0.1.0 oxoffice "$@"; }`,
+   `oxpy() { uv run --no-project --python '>=3.10' --with oxoffice==0.1.0 python "$@"; }`.
+3. **pip in a virtual environment** of its own, made once (`$V/Scripts` on Windows):
 
    ```bash
    V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0"
    [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.1.0; }
-   OX="$V/bin/oxoffice"; PY="$V/bin/python"
+   ox() { "$V/bin/oxoffice" "$@"; }; oxpy() { "$V/bin/python" "$@"; }
    ```
 
-4. **pixi** (conda: `references/install.md`):
-   `X="pixi exec -c https://prefix.dev/hadim/oxoffice -c conda-forge -s oxoffice==0.1.0"; OX="$X oxoffice"; PY="$X python"`.
-5. **The CLI alone**, no Python: the release's installer, `references/install.md`. Steps that need Python go to 6.
+4. **pixi or conda**, then 5. **the CLI alone** (no Python: Python steps go to 6): `references/install.md`.
 6. **Nothing works** (no network, no build for this platform): tell the user in one line that oxoffice is not
    available here, and do the task with the built-in `pptx` skill.
 
 ```bash
-$OX pptx outline deck.pptx
-$PY my_script.py                                   # or: $PY - <<'EOF' ... EOF
-PYTHONPATH="$SKILL/scripts" $PY my_script.py       # when the script imports pptx_ops
+ox pptx outline deck.pptx
+oxpy my_script.py                                   # or: oxpy - <<'EOF' ... EOF
+PYTHONPATH="$SKILL/scripts" oxpy my_script.py       # when the script imports pptx_ops
 ```
 
 `SKILL` is the folder of this SKILL.md (the base directory shown when it loaded); `scripts/pptx_ops.py` holds the
@@ -43,9 +44,9 @@ helper oxoffice 0.1.0 lacks. Never alias `oxoffice.pptx` as `pptx` (python-pptx)
 
 ## Rules that prevent damage
 
-1. **Never write over the input.** `prs.save(out)` refuses the file the deck was opened from; the editing
-   commands, `render`, `convert` and `thumbnail` refuse an existing output (`convert`, `render`, `thumbnail` and
-   `footer` accept `--force`, never for their own input). Render into a new folder each time.
+1. **Never write over the input.** `prs.save(out)` refuses the file the deck was opened from (not a `from_bytes`
+   copy); the editing commands, `render`, `convert` and `thumbnail` refuse an existing output (`convert`,
+   `render`, `thumbnail` and `footer` accept `--force`, never for their own input). Render into a new folder.
 2. **Every text replacement declares its expected count**, all or nothing: `oxoffice pptx replace ... --expect N`
    or `--map pairs.json` (slides and notes), `prs.try_replace_text(old, new, expect=n)`,
    `prs.replace_all([(old, new, n), ...])`.
@@ -115,14 +116,14 @@ helper oxoffice 0.1.0 lacks. Never alias `oxoffice.pptx` as `pptx` (python-pptx)
 | What changed | `oxoffice pptx diff A B` | | slide text only |
 | An element with no API | | `shape.element.xml` / `shape.element.replace_xml(xml)` (str), also on text frames, paragraphs, runs, tables, cells, slides, layouts, masters | instead of lxml; malformed XML or an unknown or misplaced element raises and changes nothing |
 
-`oxoffice` above is `$OX`; Python runs with `$PY`. Signatures: `references/cli.md`, `references/python-api.md`
+`oxoffice` above is `ox`; Python runs with `oxpy`. Signatures: `references/cli.md`, `references/python-api.md`
 (`grep -n NAME` them); tested examples: `references/examples.md`. Not everything is listed: before concluding that
-oxoffice cannot do it, `grep -n -i WORD` its stubs (`_native.pyi`, beside `$PY -c "import oxoffice.pptx as m;
-print(m.__file__)"`) and `$OX pptx CMD --help`.
+oxoffice cannot do it, `grep -n -i WORD` its stubs (`_native.pyi`, beside `oxpy -c "import oxoffice.pptx as m;
+print(m.__file__)"`) and `ox pptx CMD --help`.
 
 ## When oxoffice cannot do a step
 
-`$OX limitations pptx` (`oxoffice.limitations("pptx")`) lists what this build cannot do yet, each with its
+`ox limitations pptx` (`oxoffice.limitations("pptx")`) lists what this build cannot do yet, each with its
 workaround and issue. When a step is blocked: search the stubs, `--help` and the limitations, and say so in one
 line to the user; try the element's raw XML before lxml (`shape.element.xml` / `element.replace_xml(xml)`, also on
 text frames, paragraphs, runs, tables, cells, slides, layouts and masters: `references/python-api.md`, "Raw XML");
@@ -135,4 +136,4 @@ When oxoffice fails, refuses, loses data, renders wrong, or lacks an API you nee
 list it: reduce it to a **neutral reproduction**, a short script that builds its own input (python-pptx is fine)
 and prints the wrong result next to the expected one, never the user's deck, text, names or paths. Ask the user,
 then write it as `oxoffice-findings/YYYY-MM-DD-<slug>.md` in the working folder (what, expected, observed, the
-script, `$OX --version`), or give it in the reply. Do not open issues yourself.
+script, `ox --version`), or give it in the reply. Do not open issues yourself.
