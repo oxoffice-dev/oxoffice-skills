@@ -67,7 +67,7 @@ legacy form field names (`{"client": "Acme", "Status": "Final", "Signer": "Jane 
 control takes a string (`"true"` ticks a check box), a legacy text field a string, a legacy check box `true` /
 `false`, a legacy drop-down the index of its entry; `--json` lists each key's `target_kind` and `count`. A key that
 names no field or several, or a value of the wrong kind, exits 1 and writes nothing; a control takes its value as Word
-does: the placeholder flag goes, a date control gets `w:fullDate`, a drop-down takes one of its items (value or display
+does: the placeholder flag goes, a date control gets `w:fullDate` and shows the date in its own format and language (limitation id docx-date-control-names), a drop-down takes one of its items (value or display
 text). `meta set` writes the core properties it is given and custom
 properties (`--custom` repeatable, `TYPE` one of `str`, `int`, `float`, `bool`, `filetime`
 (`2026-10-31T00:00:00Z`), `empty`: `Client=str:Acme`, `Count=int:4`); `meta get --json` prints them all
@@ -117,12 +117,14 @@ table cell or a content control, show as whole paragraphs deleted or inserted, m
 rejecting ORIGINAL's. `--ignore-comments` keeps the original's comments, drops the edited file's, and
 compares the text only. A pair whose edited side had
 its TOC rebuilt compares, and the rebuilt TOC entries show as revisions next to the edit, with these exceptions:
-a paragraph that would show whole as deleted or inserted (added, removed, merged, split or moved) exits 1 when
-it holds a simple field outside a whole TOC added with it ("cannot track a whole paragraph's simple field";
-`oxoffice limitations docx --json`, id docx-compare-simple-field-paragraph). `toc rebuild` writes the page
-numbers as simple `PAGEREF` fields, so an entry added to or removed from a rebuilt TOC is refused, as is a new
-paragraph with an `add_field` field; a whole TOC removed is refused too. Compare before rebuilding the TOC,
-or add or remove such a paragraph by hand on the redline. Check the exit code and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
+a paragraph that shows whole as deleted or inserted (added, removed, merged, split or moved) carries its
+simple fields in Word's complex form, but exits 1 for one inside a hyperlink or nested in another field
+(`oxoffice limitations docx --json`, id docx-compare-simple-field-paragraph). `toc rebuild` writes the page
+numbers as simple `PAGEREF` fields, and on a Word-saved ORIGINAL an entry added to a rebuilt TOC, or a new
+paragraph with an `add_field` field, can still exit 1 ("resolved field conversion changed independent semantic or
+source facts"): compare before rebuilding the TOC. A block content control added or removed whole exits 1
+("cannot delete an unmatched content-control"), and Word's own TOC sits in one; a TOC of plain paragraphs, as
+Python's `insert_toc` writes it, compares added or removed whole. Check the exit code and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
 new one inserted; accepting gives the edited chart, rejecting the original. `--ignore-story KIND` (repeatable:
 `header`, `footer`, `comment`, `text_box`, `footnote`, `endnote`) keeps that story of ORIGINAL.
 ORIGINAL may already hold tracked changes, such as a first reviewer's redline: a paragraph, table or

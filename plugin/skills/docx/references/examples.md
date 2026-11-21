@@ -310,10 +310,11 @@ run). In Python: `v1.compare(v2, "Reviewer", timestamp, granularity="word")`. Co
 TOC: a TOC rebuilt on the edited side shows its changed entries as revisions. Word renames the `_Toc` heading
 bookmarks and renumbers bookmark ids when it rebuilds or saves; `compare` gives the edited side the original's ids
 and names first, so two such versions compare as they are. `rebuild_toc` writes a TOC's page
-numbers as simple `PAGEREF` fields, and `compare` refuses a paragraph that would show whole as deleted or inserted
-while it holds a simple field outside a whole TOC added with it (`oxoffice limitations docx --json`, id
-docx-compare-simple-field-paragraph): an entry added to or removed from a rebuilt TOC, a new paragraph with an
-`add_field` field. A whole TOC removed is refused too.
+numbers as simple `PAGEREF` fields; a paragraph shown whole as deleted or inserted carries them in Word's complex
+form, except one inside a hyperlink or nested in another field (`oxoffice limitations docx --json`, id
+docx-compare-simple-field-paragraph). On a Word-saved original, an entry added to a rebuilt TOC, or a new paragraph
+with an `add_field` field, can still be refused: that is one more reason to compare first. A block content control
+added or removed whole is refused, Word's own TOC included; a TOC of plain paragraphs (`insert_toc`) compares.
 
 ```python
 import oxoffice.docx
