@@ -307,9 +307,11 @@ ox docx convert redline.docx --to pdf --revision-view tracked --revision-style l
 The redline holds only the edit, in every story (`revision list` shows each revision's story), and
 `--granularity word` marks only the changed words (the default, `run`, deletes and re-inserts the whole
 run). In Python: `v1.compare(v2, "Reviewer", timestamp, granularity="word")`. Compare before rebuilding the
-TOC: a TOC rebuilt on the edited side adds its entries to the redline as revisions. Word renames the `_Toc`
-heading bookmarks and renumbers bookmark ids when it rebuilds or saves; `compare` gives the edited side the
-original's ids and names first, so two such versions compare as they are.
+TOC: a TOC rebuilt on the edited side shows its changed entries as revisions. Word renames the `_Toc` heading
+bookmarks and renumbers bookmark ids when it rebuilds or saves; `compare` gives the edited side the original's ids
+and names first, so two such versions compare as they are. A TOC that oxoffice wrote (`insert_toc`,
+`rebuild_toc`) holds simple fields, and an entry added to it still makes `compare` refuse
+(`oxoffice limitations docx`, docx-compare-simple-field-paragraph): compare before rebuilding it.
 
 ```python
 import oxoffice.docx

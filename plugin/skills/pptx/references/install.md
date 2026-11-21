@@ -63,7 +63,7 @@ and pipes are read and written in UTF-8 on Windows too.
 6. **Nothing works**: tell the user in one line, and do the task with the built-in skill.
 
 **Windows**, in Git Bash: `python` (or `py -3`) for `python3`; `Scripts` for `bin` in 3 (`pip`, `oxoffice` and
-`python`); `oxoffice-0.2.0-conda/python` for `oxoffice-0.2.0-conda/bin/python` in 4 (conda). Way 5 runs in PowerShell:
+`python`); `/python` for `/bin/python` in 4 (conda), the `[ -x ... ]` check included. Way 5 runs in PowerShell:
 
 ```powershell
 $env:OXOFFICE_VERSION = "0.2.0"; $env:OXOFFICE_NO_PATH_UPDATE = "1"
