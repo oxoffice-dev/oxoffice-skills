@@ -336,8 +336,10 @@ ox docx toc rebuild report.docx -o toc.docx
 ```python
 import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
-rep = doc.rebuild_toc()
-fields = doc.update_layout_backed_fields()
+rep = doc.rebuild_toc()                       # entries, links and page numbers from oxoffice's pagination
+i = next(k for k, p in enumerate(doc.paragraphs) if p.text == "Access arrangements")
+doc.paragraphs[i].paragraph_format.page_break_before = True   # an edit that moves headings to later pages
+fields = doc.update_layout_backed_fields()    # the TOC's page numbers follow it
 doc.save("fields.docx")
 print(rep.entry_count, fields.updated_count)
 ```
