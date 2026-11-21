@@ -11,10 +11,12 @@ Setup and in the README, not in the plugin version.
       release with `install.sh` and `install.ps1`. `uvx --from oxoffice==X oxoffice --version` prints it.
 - [ ] The skills cite only what that release has, and pin it everywhere (`grep -rn 'oxoffice==' plugin README.md`).
 - [ ] oxoffice's `skill-examples` job passed on `main` with this repository's head (its log names the commit).
-- [ ] The examples pass against the released package, not only `main`'s build: from a checkout of oxoffice at
-      the release tag, in a venv with its `.github/requirements/ci.txt` and `oxoffice==X` from PyPI, the four
-      commands of its `tests/skills/README.md`; then `run_examples.py` once more with `OX` and `PY` set to the
-      Setup's `uvx` and `uv run` commands, which checks that way of the Setup too.
+- [ ] The examples pass against the released package, not only `main`'s build. In oxoffice checked out at the
+      release tag, with this repository's release head checked out at `../oxoffice-skills`, in a new venv:
+      `pip install --require-hashes -r .github/requirements/ci.txt`, then `pip install oxoffice==X` (two calls:
+      the first checks hashes), then the four `python tests/skills/...` commands of `tests/skills/README.md`.
+      Then `run_examples.py` once more with `OX` and `PY` set to the Setup's `uvx` and `uv run` commands, which
+      checks that way of the Setup too.
 - [ ] `claude plugin validate .` and `claude plugin validate plugin` pass.
 - [ ] Each `SKILL.md` is under 16 KiB, each description under 800 characters.
 
