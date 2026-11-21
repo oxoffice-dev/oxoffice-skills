@@ -36,17 +36,15 @@ zsh): `ox`, the CLI, and `oxpy`, a Python with oxoffice. Shell state is lost bet
 ```bash
 ox docx text --json report.docx
 oxpy my_script.py                                   # or: oxpy - <<'EOF' ... EOF
-PYTHONPATH="$SKILL/scripts" oxpy my_script.py       # when the script imports docx_ops
 ```
 
-`SKILL` is the folder of this SKILL.md (the base directory shown when it loaded); `scripts/docx_ops.py` holds the
-helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (python-docx). Windows: `references/install.md`.
+Never alias `oxoffice.docx` as `docx` (python-docx). Windows: `references/install.md`.
 
 ## Rules that prevent damage
 
 1. **Never write over the input.** Write to a new path, check it, and replace the original only if the user wants
-   it. `doc.save(out)` refuses the file a document was opened from, not a `from_bytes` copy (`docx_ops.commented`
-   returns one). The editing commands refuse an existing output (`render`, `convert`: `--force`, never for their
+   it. `doc.save(out)` refuses the file a document was opened from, not a `from_bytes` copy. The editing commands
+   refuse an existing output (`render`, `convert`: `--force`, never for their
    input). Render into a new folder.
 2. **Every edit declares its expected count**, all or nothing: `doc.replace_all([(old, new, n), ...])` and
    `oxoffice docx replace ... --expect N` (`--map`) also refuse text left out of their reach (`references/cli.md`).
@@ -60,9 +58,9 @@ helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (pyth
    add --start-paragraph`, `layout()`) counts tables and content-control blocks; `doc.paragraphs[i]` counts
    paragraphs only. `find_content_indices(text)` also returns the table of contents block for any heading:
    never delete by it.
-5. **Place comments with `docx_ops.comment_on_text`**: it finds the text, splits the runs around it, checks
-   the anchor on a copy first and dates the comment. Offsets in `p.text` are not run offsets (fields, smart tags
-   and custom XML show in `Paragraph.text`, not in `Paragraph.runs`). In a table cell: `in_tables=True`.
+5. **Place comments with `doc.add_comment_on_text(anchor, author=, text=)`** (CLI `comment add --anchor`): it
+   splits the runs around the text and checks the anchor before writing. Offsets in `p.text` are not run offsets
+   (fields, smart tags and custom XML show in `Paragraph.text`, not in `Paragraph.runs`). Cells only: `tables_only`.
 6. **Read what reviewers see**: `oxoffice docx text` (`--json` too) and `Paragraph.text` show the accepted view
    (insertions in, deletions out), the body then every other story; `doc.story_paragraphs` adds part and style.
 7. **Verify after writing**: `oxoffice docx validate OUT`, `oxoffice docx diff IN OUT`, render the touched pages
@@ -105,7 +103,7 @@ helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (pyth
 | Pictures | `oxoffice docx images extract F DIR` | `doc.add_picture(image, name, w, h, options=PictureOptions(...))`, `run.add_picture(...)`, `pictures()`, `replace_image(rid, bytes)` | both sizes or neither; `replace_image` keeps the old size |
 | Hyperlinks | | `doc.hyperlinks`, `p.add_hyperlink(text, url)`, `p.add_internal_hyperlink(text, bookmark)`, `doc.add_heading_hyperlink(p, heading, text)`, `remove_hyperlink(hyperlink)` | re-fetch `doc.hyperlinks` after a removal |
 | Headers, footers, page numbers, notes | | `doc.section(i).header.add_paragraph(t)`, `run.add_field("PAGE")`, `doc.add_footnote(p, text)` | a new header holds no paragraph; a note goes by id: `remove_footnote(id)` |
-| Comments, replies, resolution | `docx_ops.py comment`; `oxoffice docx comment list/reply/resolve/remove`, `--date` | `docx_ops.comment_on_text`, `reply_to(date=)`, `resolve_comment`, `remove_comment` | always date a comment |
+| Comments, replies, resolution | `oxoffice docx comment add F --anchor TEXT --text T --author A -o OUT`, `comment list/reply/resolve/remove` | `doc.add_comment_on_text(anchor, author=, text=, occurrence=0)`, `reply_to`, `resolve_comment`, `remove_comment` | dated now unless `--date`/`date=` or `--undated` |
 | What each comment points at, moving a thread | `oxoffice docx comment list --json F` (`anchor_text`, `anchor`), `comment move F ID --text TEXT -o OUT` | `c.anchor_text`, `c.anchor` for `c in doc.comments`; `doc.move_comment_to_text(id, text)`, `move_comment(id, range)` | move a thread off a paragraph before deleting it |
 | Tracked changes | `oxoffice docx revision list/accept/reject --id/--author/--start-date/--end-date` | `doc.revisions`, `accept_all()`, `reject_all()`, by id, author or dates | every story: `r.story.kind` |
 | Redline of two versions | `oxoffice docx compare A B --author N --timestamp T --granularity word [--ignore-comments] -o OUT` | `a.compare(b, author, timestamp, granularity="word", ignore_comments=True)` | default: whole runs; a rebuilt TOC, picture or chart shows as revisions |

@@ -1,8 +1,7 @@
 # docx examples
 
 Every block runs on each push to oxoffice's `main`, against the wheel and the CLI just built. Conventions, as set
-up in SKILL.md: `ox` runs the CLI, `SKILL` is this skill's folder, and Python blocks run with
-`PYTHONPATH="$SKILL/scripts" oxpy`, so that `import docx_ops` works. `report.docx` is the input;
+up in SKILL.md: `ox` runs the CLI and Python blocks run with `oxpy`. `report.docx` is the input;
 `Aileron-Regular.ttf` (a CC0-1.0 font) and `photo.png` stand for files the user supplies; outputs go to new files.
 Blocks run in order in one folder: a later block may read a file an earlier one wrote.
 
@@ -242,35 +241,29 @@ note.save("picture-added.docx")
 ## Comments: on exact text, on a table cell, reply, resolve
 
 ```python
-import docx_ops, oxoffice.docx
-from datetime import datetime, timezone
-now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")   # the date form comments take
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
-doc, cid = docx_ops.commented(doc, "about 12 mm", "Measured against which reference?", "Reviewer", "RV")  # a checked copy
-# the copy does not remember report.docx: its save does not refuse that file, so give a new path
-rid = doc.reply_to(cid, author="Author", text="The 2019 survey marks.", date=now)
+cid = doc.add_comment_on_text("about 12 mm", author="Reviewer", text="Measured against which reference?", initials="RV")
+doc.reply_to(cid, author="Author", text="The 2019 survey marks.")   # dated now, like every comment and reply
 doc.resolve_comment(cid)
-docx_ops.comment_on_text(doc, "spalled concrete", "Which face of the pier?", "Reviewer", in_tables=True)  # part of a cell
+doc.add_comment_on_text("spalled concrete", author="Reviewer", text="Which face of the pier?", tables_only=True)
 cell = next(it for it in doc.story_items if it.story.kind == "table_cell" and it.kind == "paragraph" and it.text == "Ref")
 doc.add_comment(oxoffice.docx.StoryRunRange(start=oxoffice.docx.StoryRunPosition(item=cell, run_index=0),
                                     end=oxoffice.docx.StoryRunPosition(item=cell, run_index=len(doc.tables[0].cell(0, 0).paragraphs[0].runs))),
-                author="Reviewer", text="Rename this column?", date=now)
+                author="Reviewer", text="Rename this column?")
 doc.save("commented.docx")
 ```
 
-`comment_on_text` splits runs so that the comment covers exactly the anchor, also inside or after a content
-control or a tracked insertion, dates it, and refuses (nothing changed) if oxoffice would anchor it anywhere
-else, or if the anchor sits inside a simple field, a smart tag or a custom XML element. It checks the comment on a
-copy, then anchors it again on `doc`; `commented` takes the same arguments, anchors it once and returns the checked
-copy with the id (`doc` unchanged): half the work in a large document, as `docx_ops.py comment`. `occurrence` counts
-the body's own paragraphs; with `in_tables=True` (`--in-tables`) it counts the paragraphs of table cells,
-nested tables included, and the comment covers exactly the anchor inside the cell. `add_comment` without
-`date=` writes an undated comment.
+`add_comment_on_text` splits runs so that the comment covers exactly the anchor, also inside or after a content
+control or a tracked insertion, reads the anchor back on a staged copy and refuses, changing nothing, when it
+would land anywhere else. `occurrence` counts from 0 over the main story in document order, table cells
+included; `tables_only=True` counts only the paragraphs of table cells, nested tables included. A comment or a
+reply is dated now, in UTC, unless `date="2026-09-29T12:00:00Z"` names another time or `undated=True` writes none.
 
 ```bash
 ox docx comment list --json commented.docx
-oxpy "$SKILL/scripts/docx_ops.py" comment report.docx commented-cli.docx --anchor "about 12 mm" --text "Which reference?" --author "Reviewer"
-oxpy "$SKILL/scripts/docx_ops.py" comment report.docx commented-cell.docx --anchor "spalled concrete" --in-tables --text "Which face?" --author "Reviewer"
+ox docx comment add report.docx --anchor "about 12 mm" --text "Which reference?" --author "Reviewer" -o commented-cli.docx
+ox docx comment add report.docx --anchor "spalled concrete" --tables-only --text "Which face?" --author "Reviewer" -o commented-cell.docx
 ```
 
 ## Review pass: what each comment is on, move a thread, delete a paragraph

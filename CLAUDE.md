@@ -11,16 +11,15 @@ Public repository: nothing specific to a company, a project or a person goes in 
   under 16 KiB and its description under 800 characters; details go to `references/` (`cli.md`, `python-api.md`,
   `examples.md`, `install.md`, and `interop.md` for docx).
 - `plugin/skills/<name>/references/examples.md`: the examples, run by oxoffice's CI (below).
-- `plugin/skills/<name>/scripts/`: the helpers oxoffice does not offer yet. Each one goes when oxoffice gains it
-  (oxoffice `specs/2026-11-20-skill-helpers-in-the-library.md`); the skills then cite the library call.
 - `.claude-plugin/marketplace.json`: the marketplace entry. `RELEASE.md`: how a version is published.
 
 ## Rules
 
 1. The skills describe one oxoffice release, the one their Setup pins (`oxoffice==0.2.0`). Moving to another
    release changes every place that names it (`grep -rn '0\.2\.0' plugin README.md PRIVACY.md`) and means checking
-   every command, flag and Python name the skills cite against it. While the helpers move into oxoffice, the skills
-   cite its `main` and pin the next release, 0.2.0, not out yet: they are published once it is (`RELEASE.md`).
+   every command, flag and Python name the skills cite against it. The skills cite oxoffice `main` and pin its next
+   release, 0.2.0, not out yet: they are published once it is (`RELEASE.md`). They hold no script: what an agent
+   needs belongs in oxoffice (its `specs/2026-11-20-skill-helpers-in-the-library.md`).
 2. No tests and no build here. The examples are the contract with oxoffice: its `skill-examples` job runs every
    block of both `examples.md` on each push to oxoffice's `main`, against the wheel just built, from this
    repository's default branch, and checks that every name the skills cite exists (oxoffice

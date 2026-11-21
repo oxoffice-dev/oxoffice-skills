@@ -1,7 +1,7 @@
 # Privacy
 
-oxoffice-skills is a Claude plugin: two skills, their references and a few helper scripts. It has no server, no
-account and no telemetry.
+oxoffice-skills is a Claude plugin: two skills and their references, documentation and examples only. It has no
+server, no account and no telemetry.
 
 ## What the plugin collects
 

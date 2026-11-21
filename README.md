@@ -73,7 +73,6 @@ Details in [`plugin/skills/docx/references/install.md`](plugin/skills/docx/refer
 | [`plugin/skills/docx/`](plugin/skills/docx/) | the Word skill: reading, writing, editing, comments, tracked changes, redlines, conversions |
 | [`plugin/skills/pptx/`](plugin/skills/pptx/) | the PowerPoint skill: reading, building, editing, rendering, merging decks |
 | `plugin/skills/*/references/` | the CLI and Python references, the examples, how to run oxoffice |
-| `plugin/skills/*/scripts/` | the few helpers oxoffice does not offer yet, until it does |
 
 ## 🔒 Privacy
 

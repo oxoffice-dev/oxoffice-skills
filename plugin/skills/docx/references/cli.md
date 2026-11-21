@@ -77,9 +77,9 @@ properties (`--custom` repeatable, `TYPE` one of `str`, `int`, `float`, `bool`, 
 a new folder.
 
 ```bash
-oxoffice docx comment add F --start-paragraph P --start-run S --end-paragraph Q --end-run E --author A [--initials I] --text T [--date RFC3339] -o OUT [--json]
-oxoffice docx comment add F --anchor TEXT [--occurrence K] --author A --text T [--date RFC3339] -o OUT   # K from 0, main story, cells included
-oxoffice docx comment reply F --id ID --author A [--initials I] --text T [--date RFC3339] -o OUT [--json]
+oxoffice docx comment add F --start-paragraph P --start-run S --end-paragraph Q --end-run E --author A [--initials I] --text T [--date RFC3339 | --undated] -o OUT [--json]
+oxoffice docx comment add F --anchor TEXT [--occurrence K] [--tables-only] --author A --text T [--date RFC3339 | --undated] -o OUT   # K from 0
+oxoffice docx comment reply F --id ID --author A [--initials I] --text T [--date RFC3339 | --undated] -o OUT [--json]
 oxoffice docx comment resolve F --id ID -o OUT [--json]
 oxoffice docx comment move F ID --text TEXT [--occurrence K] -o OUT [--json]   # a thread root onto TEXT
 oxoffice docx comment remove F --id ID -o OUT [--json]   # removes the comment and its replies
@@ -89,9 +89,11 @@ with the root. A reply id (move its root), a reply whose anchor is incomplete, a
 exits 1 and writes nothing. `comment list --json` gives each thread's `anchor_text` first.
 `P` and `Q` are **body indices** (`body_index` of `text --json`, counting tables); runs are zero-based run
 boundaries, half-open: `--start-run 1 --end-run 2` covers run 1. Runs are counted as `text --json` lists them,
-those inside an inline content control or a tracked insertion included. Without `--date` a comment is
-undated: always pass one (`2026-09-29T12:00:00Z`). Prefer `docx_ops.py comment`, which finds the text,
-splits runs, dates the comment and refuses a misplaced anchor. Comment ids stay stable across saves.
+those inside an inline content control or a tracked insertion included. Prefer `--anchor TEXT` (with
+`--occurrence N`, zero-based over the main story, and `--tables-only` to count table cells only): it splits the
+runs around the text and refuses, writing nothing, an anchor it would place elsewhere. A comment or a reply is
+dated now, in UTC, unless `--date 2026-09-29T12:00:00Z` names another time or `--undated` writes none. Comment
+ids stay stable across saves.
 
 ```bash
 oxoffice docx revision accept F -o OUT [--id ID] [--author NAME] [--start-date RFC3339] [--end-date RFC3339] [--json]

@@ -38,8 +38,7 @@ ox pptx outline deck.pptx
 oxpy my_script.py                                   # or: oxpy - <<'EOF' ... EOF
 ```
 
-`SKILL` is the folder of this SKILL.md (the base directory shown when it loaded). Never alias `oxoffice.pptx` as
-`pptx` (python-pptx). Windows: `references/install.md`.
+Never alias `oxoffice.pptx` as `pptx` (python-pptx). Windows: `references/install.md`.
 
 ## Rules that prevent damage
 

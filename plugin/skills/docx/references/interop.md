@@ -56,8 +56,8 @@ Observed behaviour of Google Docs on a .docx it opens; no test here can exercise
   everything its save rewrote (previous section).
 - **Tracked changes and comments are shared state.** A file under review in Word or Google Docs carries the
   reviewers' threads and revisions: never accept, reject or remove them unless asked; add yours with an
-  author name that says it is a machine (for example "Claude"), never the user's name, and a date (an undated
-  comment shows none). `oxoffice docx text`, `oxoffice docx text --json` and `Paragraph.text` show the accepted view
+  author name that says it is a machine (for example "Claude"), never the user's name, and keep the date
+  oxoffice writes (`undated` leaves the comment without one). `oxoffice docx text`, `oxoffice docx text --json` and `Paragraph.text` show the accepted view
   (insertions in, deletions out), and replacement edits the text inside an insertion, which stays tracked.
 - **Fields and the TOC**: cached field results (TOC page numbers, PAGE, NUMPAGES) come from oxoffice's
   pagination when you refresh them, which is close to Word's and not equal. When exact page numbers matter,
