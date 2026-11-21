@@ -290,8 +290,7 @@ prs.save("links.pptx")
 
 ```bash
 ox pptx fit deck.pptx || [ $? -eq 1 ]            # exit 1: a frame overflows (or cannot be assessed)
-slides=$(mktemp -d)                           # render into a new folder each time
-ox pptx render deck.pptx -o "$slides" --slide 5 --dpi 80
+ox pptx render deck.pptx -o slide-5 --slide 5 --dpi 80   # a new folder: render refuses a slide that exists
 ox pptx convert deck.pptx --to pdf -o deck.pdf   # a new path: convert refuses an existing output without --force
 ox pptx validate deck.pptx
 ```

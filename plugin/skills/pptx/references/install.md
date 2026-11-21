@@ -4,13 +4,15 @@ The skills are written for **oxoffice 0.1.0**. Every channel carries the same bu
 the Python channels also carry the `oxoffice` package (`oxoffice.docx`, `oxoffice.pptx`). SKILL.md's Setup tries
 them in the order below and stops at the first that works. Each way defines two shell functions, `ox` (the
 command) and `oxpy` (a Python that imports oxoffice), to define again at the start of every shell command:
-functions behave the same in bash and zsh, and a path with spaces stays one word inside them.
+functions behave the same in bash and zsh, and a path with spaces stays one word inside them. Each function holds
+its whole path, so it does not depend on a variable set beside it, and `oxpy` sets `PYTHONUTF8=1` so that files
+and pipes are read and written in UTF-8 on Windows too.
 
 1. **Already installed**, only when `oxoffice --version` and `oxoffice.__version__` both say 0.1.0 (never upgrade
    or downgrade the user's install):
 
    ```bash
-   ox() { oxoffice "$@"; }; oxpy() { python3 "$@"; }
+   ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }
    ```
 
 2. **uv**: nothing installed, uv caches the wheel; `--no-project` keeps the user's project out of it, and
@@ -18,7 +20,7 @@ functions behave the same in bash and zsh, and a path with spaces stays one word
 
    ```bash
    ox() { uvx --python '>=3.10' --from oxoffice==0.1.0 oxoffice "$@"; }
-   oxpy() { uv run --no-project --python '>=3.10' --with oxoffice==0.1.0 python "$@"; }
+   oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with oxoffice==0.1.0 python "$@"; }
    ```
 
 3. **pip in a virtual environment** of its own, outside the user's folder (the Python must be 3.10 or later):
@@ -26,7 +28,8 @@ functions behave the same in bash and zsh, and a path with spaces stays one word
    ```bash
    V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0"
    [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.1.0; }
-   ox() { "$V/bin/oxoffice" "$@"; }; oxpy() { "$V/bin/python" "$@"; }
+   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0/bin/oxoffice" "$@"; }
+   oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0/bin/python" "$@"; }
    ```
 
 4. **pixi**, from the `hadim/oxoffice` channel on prefix.dev with Python from conda-forge (`python -m oxoffice`
@@ -34,7 +37,7 @@ functions behave the same in bash and zsh, and a path with spaces stays one word
 
    ```bash
    ox() { pixi exec -c https://prefix.dev/hadim/oxoffice -c conda-forge -s oxoffice==0.1.0 python -m oxoffice "$@"; }
-   oxpy() { pixi exec -c https://prefix.dev/hadim/oxoffice -c conda-forge -s oxoffice==0.1.0 python "$@"; }
+   oxpy() { PYTHONUTF8=1 pixi exec -c https://prefix.dev/hadim/oxoffice -c conda-forge -s oxoffice==0.1.0 python "$@"; }
    ```
 
    **conda**, in an environment of its own:
@@ -43,7 +46,8 @@ functions behave the same in bash and zsh, and a path with spaces stays one word
    C="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0-conda"
    [ -x "$C/bin/python" ] || conda create -y -q -p "$C" --override-channels \
        -c https://repo.prefix.dev/hadim/oxoffice -c conda-forge oxoffice=0.1.0
-   ox() { "$C/bin/python" -m oxoffice "$@"; }; oxpy() { "$C/bin/python" "$@"; }
+   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0-conda/bin/python" -m oxoffice "$@"; }
+   oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0-conda/bin/python" "$@"; }
    ```
 
 5. **The CLI alone**, no Python (the steps that need `oxpy` fall back to the built-in skill), installed in a folder
@@ -53,13 +57,13 @@ functions behave the same in bash and zsh, and a path with spaces stays one word
    H="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0-cli"
    [ -x "$H/bin/oxoffice" ] || curl -fsSL https://github.com/oxoffice-dev/oxoffice/releases/download/v0.1.0/install.sh \
        | OXOFFICE_VERSION=0.1.0 OXOFFICE_HOME="$H" OXOFFICE_NO_PATH_UPDATE=1 sh
-   ox() { "$H/bin/oxoffice" "$@"; }
+   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0-cli/bin/oxoffice" "$@"; }
    ```
 
 6. **Nothing works**: tell the user in one line, and do the task with the built-in skill.
 
-**Windows**, in Git Bash: `python` (or `py -3`) for `python3`; `$V/Scripts/oxoffice` and `$V/Scripts/python` in 3;
-`$C/python` for `$C/bin/python` in 4 (conda). Way 5 runs in PowerShell:
+**Windows**, in Git Bash: `python` (or `py -3`) for `python3`; `Scripts` for `bin` in 3 (`pip`, `oxoffice` and
+`python`); `oxoffice-0.1.0-conda/python` for `oxoffice-0.1.0-conda/bin/python` in 4 (conda). Way 5 runs in PowerShell:
 
 ```powershell
 $env:OXOFFICE_VERSION = "0.1.0"; $env:OXOFFICE_NO_PATH_UPDATE = "1"

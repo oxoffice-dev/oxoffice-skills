@@ -28,7 +28,8 @@ i = next(i for i, _, t in heads if t == "Recommendations")
 bi = doc.find_content_index(doc.paragraphs[i])
 page = next(f.physical_page for f in doc.layout() if f.body_index == bi)
 # every paragraph of the table cells, with its path, from the CLI's JSON of the bash block above
-cells = [p for p in json.load(open("report.json"))["paragraphs"] if len(p["path"]) > 1]
+cells = [p for p in json.load(open("report.json", encoding="utf-8"))["paragraphs"]
+         if any(step["kind"] == "cell" for step in p["path"])]
 # headers and footers, one story per variant part
 footers = [t for kind, t in docx_ops.all_text(doc) if kind == "footer"]
 print(len(heads), bi, page, len(cells), footers)
@@ -341,8 +342,10 @@ doc.save("fields.docx")
 print(rep.entry_count, fields.updated_count)
 ```
 
-After a save in Google Docs or Word (the fixture's footer fields are packed with no cached result), refresh the
-fields and stop Word from asking to update them on open:
+`update_layout_backed_fields` writes the page numbers of the body's references (the TOC entries, `PAGEREF`); a
+`PAGE` or `NUMPAGES` in a header or footer keeps its cached text, as Word does, which works out the number when it
+shows the page (the report's diagnostics say so). After a save in Google Docs, stop Word from asking to update
+the fields when the file opens:
 
 ```python
 import oxoffice.docx, zipfile
@@ -378,9 +381,8 @@ print(rep.entry_count)
 oxpy "$SKILL/scripts/docx_ops.py" replace report.docx checked.docx --edit "three points lower" "two points lower" 1
 ox docx validate checked.docx
 ox docx diff report.docx checked.docx
-pages=$(mktemp -d)                                       # render into a new folder each time
-ox docx render checked.docx -o "$pages" --pages 1-3 --dpi 80
-ls "$pages"
+ox docx render checked.docx -o checked-pages --pages 1-3 --dpi 80   # a new folder: render refuses a page that exists
+ls checked-pages                                                     # checked_page1.png, ...
 ```
 
 `validate` reads every XML part, checks a subset of the schema, the references and every style id (`cli.md`). Look at
