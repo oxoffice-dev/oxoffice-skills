@@ -47,7 +47,7 @@ helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (pyth
 1. **Never write over the input.** Write to a new path, check it, and replace the original only if the user wants
    it. `doc.save(out)` refuses the file a document was opened from, not a `from_bytes` copy (`docx_ops.commented`
    returns one). The editing commands refuse an existing output (`render`, `convert`: `--force`, never for their
-   input). Render into a new folder each time.
+   input). Render into a new folder.
 2. **Every edit declares its expected count**, all or nothing: `docx_ops.replace_batch(src, out, [(old, new, n),
    ...])` also refuses when the text is still there afterwards; `doc.replace_all([(old, new, n)])` and `oxoffice
    docx replace ... --expect N` do not check that (`references/cli.md`, Editing).
@@ -65,7 +65,7 @@ helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (pyth
    the anchor on a copy first and dates the comment. Offsets in `p.text` are not run offsets (fields, smart tags
    and custom XML show in `Paragraph.text`, not in `Paragraph.runs`). In a table cell: `in_tables=True`.
 6. **Read what reviewers see**: `oxoffice docx text` (`--json` too) and `Paragraph.text` show the accepted view
-   (insertions in, deletions out), the body then every other story; `docx_ops.py text F` adds part and style.
+   (insertions in, deletions out), the body then every other story; `doc.story_paragraphs` adds part and style.
 7. **Verify after writing**: `oxoffice docx validate OUT`, `oxoffice docx diff IN OUT`, render the touched pages
    to PNG and look at them.
 8. **The file will be opened elsewhere** (Word, Google Docs, LibreOffice): keep what you do not understand,
@@ -83,9 +83,9 @@ helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (pyth
 
 | Task | CLI | Python (`oxoffice.docx`) | Notes |
 |---|---|---|---|
-| Text of the body and tables | `oxoffice docx text --json F` | `[p.text for p in doc.paragraphs]`, `t.cell(r, c).text` | accepted view of tracked changes |
-| Headers, footers, footnotes, text boxes, comments | `oxoffice docx text F` (`--json`: `stories`), `docx_ops.py text F` | `doc.story_items` (`item.paragraph` edits one), `docx_ops.story_paragraphs(doc)` | after the body; a Word text box once |
-| Where a string occurs | `docx_ops.py count F TEXT` | `docx_ops.count(doc, text)` | by story kind |
+| Text of the body and tables | `oxoffice docx text --json F` | `[p.text for p in doc.paragraphs]`, `t.cell(r, c).text` | accepted view |
+| Headers, footers, footnotes, text boxes, comments | `oxoffice docx text F` (`--json`: `stories`, with `style`) | `doc.story_paragraphs` (kind, part, style, text), `doc.story_items` (`item.paragraph` edits one) | after the body; a Word text box once |
+| Where a string occurs | `oxoffice docx count F TEXT [--json]` | `doc.count_text(text)` | by kind, comments too (`--json`: `outside_comments`) |
 | Counts, styles used, metadata | `oxoffice docx inspect --json F`, `meta get/set F` | `doc.word_count()`, `page_count()`, `styles`, `core_properties`, `custom_properties` | |
 | Page of every block | `oxoffice docx layout --json F` | `doc.layout()` | oxoffice's pagination: confirm in Word |
 | Counted replacement | `docx_ops.py replace IN OUT --edit OLD NEW N`, `oxoffice docx replace F -p OLD -v NEW --expect N -o OUT` | `docx_ops.replace_batch`, `doc.replace_all([(old, new, n)])` | crosses runs; only `docx_ops` checks what is left |

@@ -2,8 +2,6 @@
 it (oxoffice specs/2026-11-20-skill-helpers-in-the-library.md). Import it from a script run with the Python that has
 oxoffice (`oxpy`, this folder on PYTHONPATH), or run it as a command:
 
-  oxpy docx_ops.py text IN.docx                                                every paragraph of every story, by part
-  oxpy docx_ops.py count IN.docx TEXT                                          occurrences of TEXT by story kind
   oxpy docx_ops.py replace IN.docx OUT.docx --edit OLD NEW COUNT [--edit ...] [--allow-unreached]
   oxpy docx_ops.py comment IN.docx OUT.docx --anchor TEXT --text COMMENT --author NAME [--occurrence N] [--in-tables] [--date ISO]
 
@@ -11,7 +9,6 @@ What writes takes an output path that must not exist yet, as the CLI's outputs, 
 Exit codes: 0 done, 1 refused (nothing written), 2 usage.
 """
 import argparse
-import collections
 import io
 import json
 import os
@@ -37,11 +34,6 @@ def _new_output(out):
 
 
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-MC_FALLBACK = "{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallback"
-STORY_PART = re.compile(r"word/(document|header|footer|footnotes|endnotes)(\d*)\.xml$")
-STORY_KIND = {"document": "body", "header": "header", "footer": "footer", "footnotes": "footnote", "endnotes": "endnote"}
-
-
 def _now():
     """The current UTC time as an RFC 3339 string, the form oxoffice takes for comment dates."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -56,67 +48,6 @@ def _package(source):
     return Path(source).read_bytes()
 
 
-def _part_paragraphs(xml):
-    """[(style id, text)] for every w:p of one XML part, in document order. A paragraph's text is its own
-    w:t and w:tab ("\\t") (a text box's paragraphs are listed on their own, not inside the paragraph that anchors
-    them), content controls, tracked insertions, hyperlinks and fields included, deletions (w:delText) out, and
-    mc:Fallback copies skipped, so a Word text box counts once."""
-    out = []
-
-    def walk(el, acc):
-        if el.tag == MC_FALLBACK:
-            return
-        if el.tag == W_NS + "p":
-            slot = len(out)
-            out.append(None)
-            mine = []
-            style = el.find(f"{W_NS}pPr/{W_NS}pStyle")
-            for child in el:
-                walk(child, mine)
-            out[slot] = (style.get(W_NS + "val") if style is not None else None, "".join(mine))
-            return
-        if el.tag == W_NS + "t":
-            acc.append(el.text or "")
-        for child in el:
-            if child.tag == W_NS + "tab" and el.tag == W_NS + "r":  # a tab character, not a tab stop of w:pPr
-                acc.append("\t")
-                continue
-            walk(child, acc)
-
-    walk(ET.fromstring(xml), [])
-    return out
-
-
-def story_paragraphs(source):
-    """[(part name, story kind, style id, text)] for every paragraph of the body (table cells, text boxes,
-    content controls included), the headers and footers (each variant part), the footnotes and endnotes, read
-    from the package XML: what a reader of the document sees, in the accepted view of tracked changes (a
-    paragraph that a tracked deletion removes is listed with empty text)."""
-    out = []
-    with zipfile.ZipFile(io.BytesIO(_package(source))) as z:
-        names = sorted((n for n in z.namelist() if STORY_PART.match(n)),
-                       key=lambda n: (n != "word/document.xml", n))
-        for name in names:
-            kind = STORY_KIND[STORY_PART.match(name).group(1)]
-            out += [(name, kind, style, text) for style, text in _part_paragraphs(z.read(name))]
-    return out
-
-
-def all_text(source):
-    """[(story kind, paragraph text)] for every paragraph of every story (see story_paragraphs)."""
-    return [(kind, text) for _, kind, _, text in story_paragraphs(source)]
-
-
-def count(source, text):
-    """Occurrences of `text` by story kind, as a reader sees them: {"body": n, "footer": n, ...}. A header or
-    footer text counts once per variant part (default, first page, even pages), like replacement does."""
-    got = collections.Counter()
-    for kind, t in all_text(source):
-        if text in t:
-            got[kind] += t.count(text)
-    return dict(got)
-
-
 def replace_batch(src, out, edits, allow_unreached=False):
     """Apply [(old, new, expected_count), ...] in order, all or nothing. The edits run once, in memory, and are
     checked there before anything is saved: nothing is written, and EditError names every problem, when a
@@ -127,14 +58,16 @@ def replace_batch(src, out, edits, allow_unreached=False):
     probe = oxoffice.docx.Document.open(src)
     wrong = []
     for old, new, expected in edits:
-        seen = sum(count(probe, old).values())
+        # what a replacement can reach: every story but the comments
+        seen = sum(n for kind, n in probe.count_text(old).items() if kind != "comment")
         got = probe.try_replace_text(old, new)
         if got != expected:
             wrong.append(f"{old!r}: expected {expected}, found {got}")
         if allow_unreached:
             continue
         if old not in new:
-            left = [(name, style, t) for name, _, style, t in story_paragraphs(probe) if old in t]
+            left = [(sp.part_name, sp.style, sp.text) for sp in probe.story_paragraphs
+                    if sp.kind != "comment" and old in sp.text]
             if left:
                 where = "; ".join(f"{name}{f' [{style}]' if style else ''}: {t[:60]!r}" for name, style, t in left[:5])
                 toc = any(style and re.match(r"(?i)(toc|tm|inhalt|verzeichnis)\s*\d", style) for _, style, _ in left)
@@ -361,11 +294,6 @@ def _strip(data_in, out, removed, start):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("text")
-    p.add_argument("src")
-    p = sub.add_parser("count")
-    p.add_argument("src")
-    p.add_argument("text")
     p = sub.add_parser("replace")
     p.add_argument("src")
     p.add_argument("out")
@@ -385,12 +313,7 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):   # Windows consoles and pipes default to a narrower code page
         sys.stdout.reconfigure(encoding="utf-8")
     try:
-        if a.cmd == "text":
-            for name, kind, style, t in story_paragraphs(a.src):
-                print(f"{kind}\t{name}\t{style or ''}\t{t}")
-        elif a.cmd == "count":
-            print(json.dumps(count(oxoffice.docx.Document.open(a.src), a.text)))
-        elif a.cmd == "replace":
+        if a.cmd == "replace":
             replace_batch(a.src, a.out, [(o, n, int(c)) for o, n, c in a.edit], a.allow_unreached)
             print(f"wrote {a.out}")
         elif a.cmd == "comment":

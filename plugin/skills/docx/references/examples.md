@@ -10,8 +10,7 @@ Blocks run in order in one folder: a later block may read a file an earlier one 
 
 ```bash
 ox docx text --json report.docx > report.json        # body and tables, then the other stories in "stories"
-oxpy "$SKILL/scripts/docx_ops.py" text report.docx > all-stories.txt   # every paragraph with its part and style
-oxpy "$SKILL/scripts/docx_ops.py" count report.docx "footbridge"
+ox docx count report.docx "footbridge"                # by story kind, and the total outside comments
 ox docx layout --json report.docx > layout.json
 ```
 
@@ -19,7 +18,7 @@ Plain `oxoffice docx text` shows the same accepted view (tracked insertions in, 
 other part (text boxes, headers, footers, notes, comments) under a `--- kind (part) ---` line.
 
 ```python
-import docx_ops, json, oxoffice.docx
+import json, oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 # flow index, style and text of every heading
 heads = [(i, p.style, p.text) for i, p in enumerate(doc.paragraphs) if (p.style or "").startswith("Heading")]
@@ -30,9 +29,12 @@ page = next(f.physical_page for f in doc.layout() if f.body_index == bi)
 # every paragraph of the table cells, with its path, from the CLI's JSON of the bash block above
 cells = [p for p in json.load(open("report.json", encoding="utf-8"))["paragraphs"]
          if any(step["kind"] == "cell" for step in p["path"])]
-# headers and footers, one story per variant part
-footers = [t for kind, t in docx_ops.all_text(doc) if kind == "footer"]
-print(len(heads), bi, page, len(cells), footers)
+# every paragraph of every story (headers and footers once per variant part, notes, comments): kind, part, style
+stories = doc.story_paragraphs                           # a property
+footers = [p.text for p in stories if p.kind == "footer"]
+with open("all-stories.txt", "w", encoding="utf-8") as f:
+    f.writelines(f"{p.kind}\t{p.part_name}\t{p.style or ''}\t{p.text}\n" for p in stories)
+print(len(heads), bi, page, len(cells), footers, doc.count_text("footbridge"))   # count_text: {kind: n}
 ```
 
 ## Counted replacements, all or nothing

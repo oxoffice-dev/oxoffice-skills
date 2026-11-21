@@ -331,9 +331,13 @@ handles inside it retire.
 `item.story.kind` in `body`, `table_cell`, `text_box`, `header`, `footer`, `footnote`, `endnote`, ... and
 `item.story.part_name`. A header or footer has one story per variant part, and a text box as Word writes
 it (`mc:AlternateContent`, DrawingML with a VML copy) is listed once. `doc.paragraphs` holds the body only,
-and `oxoffice docx text` and `text --json` (`stories`) print the others after it. `docx_ops.story_paragraphs(doc)`,
-`all_text(doc)` and `count(doc, text)` read the package XML: every paragraph of every story, in the accepted
-view, with its part and style id. A `field` item's `text` is the result the field shows, read across all its
+and `oxoffice docx text` and `text --json` (`stories`) print the others after it. `doc.story_paragraphs` (a
+property) gives a `StoryParagraph` for every paragraph of every story, comments included: `kind` (`body`, `header`,
+`footer`, `footnote`, `endnote`, `comment`; a table cell or a text box takes the kind around it), `part_name` (OPC,
+`/word/header1.xml`), `story`, `index_path` (as in `story_items`), `style` (the document's own style id) and the
+`text` a reader sees in the accepted view, smart tags and custom XML included. `doc.count_text(text)` → `{kind: n}`
+counts the same text, without overlaps or crossing a paragraph end (CLI `oxoffice docx count`, whose `outside
+comments` total is what a replacement can reach). A `field` item's `text` is the result the field shows, read across all its
 runs for a complex field. A paragraph inside a content-control block is not listed (its control is), but the
 item a `Comment.anchor` or `StoryRunPosition(paragraph=...).item` gives for it has its own `text` and `xml`
 (standalone: it declares its namespaces). `item.paragraph` is a `Paragraph` handle on a paragraph item of any
