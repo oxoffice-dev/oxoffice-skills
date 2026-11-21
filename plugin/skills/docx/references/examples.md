@@ -309,9 +309,11 @@ The redline holds only the edit, in every story (`revision list` shows each revi
 run). In Python: `v1.compare(v2, "Reviewer", timestamp, granularity="word")`. Compare before rebuilding the
 TOC: a TOC rebuilt on the edited side shows its changed entries as revisions. Word renames the `_Toc` heading
 bookmarks and renumbers bookmark ids when it rebuilds or saves; `compare` gives the edited side the original's ids
-and names first, so two such versions compare as they are. A TOC that oxoffice wrote (`insert_toc`,
-`rebuild_toc`) holds simple fields, and an entry added to it still makes `compare` refuse
-(`oxoffice limitations docx`, docx-compare-simple-field-paragraph): compare before rebuilding it.
+and names first, so two such versions compare as they are. The page numbers of a TOC that oxoffice
+wrote (`insert_toc`, then `rebuild_toc`) are simple `PAGEREF` fields, and `compare` refuses any paragraph that would
+show whole as deleted or inserted while it holds a simple field (`oxoffice limitations docx`,
+docx-compare-simple-field-paragraph): an entry added to or removed from such a TOC, a new paragraph with an
+`add_field` field. Compare before rebuilding the TOC.
 
 ```python
 import oxoffice.docx

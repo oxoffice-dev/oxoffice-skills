@@ -116,8 +116,13 @@ table cell or a content control, show as whole paragraphs deleted or inserted, m
 (deleted and reinserted), a reply or a resolved state adds one insertion: accepting gives EDITED's comments,
 rejecting ORIGINAL's. `--ignore-comments` keeps the original's comments, drops the edited file's, and
 compares the text only. A pair whose edited side had
-its TOC rebuilt compares, and the rebuilt TOC entries show as revisions next to the edit: check the exit code
-and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
+its TOC rebuilt compares, and the rebuilt TOC entries show as revisions next to the edit, with one exception:
+a paragraph that would show whole as deleted or inserted (added, removed, merged, split or moved) exits 1 when
+it holds a simple field ("cannot track a whole paragraph's simple field"; `oxoffice limitations docx`,
+docx-compare-simple-field-paragraph). The page numbers of a TOC that `toc rebuild` wrote are simple `PAGEREF`
+fields, so an entry added to or removed from it is refused, as is a new paragraph with an `add_field`
+field: compare before rebuilding the TOC, or add or remove such a paragraph by hand on the redline. Check the
+exit code and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
 new one inserted; accepting gives the edited chart, rejecting the original. `--ignore-story KIND` (repeatable:
 `header`, `footer`, `comment`, `text_box`, `footnote`, `endnote`) keeps that story of ORIGINAL.
 ORIGINAL may already hold tracked changes, such as a first reviewer's redline: a paragraph, table or
