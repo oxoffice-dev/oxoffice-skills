@@ -117,6 +117,9 @@ table cell or a content control, show as whole paragraphs deleted or inserted, m
 rejecting ORIGINAL's. `--ignore-comments` keeps the original's comments, drops the edited file's, and
 compares the text only. A pair whose edited side had
 its TOC rebuilt compares, and the rebuilt TOC entries show as revisions next to the edit, with these exceptions:
+a heading that keeps one bookmark and gains or loses another (a `_Toc` one from a TOC rebuilt in one version only,
+a `_Ref` one from a cross-reference added in Word) exits 1 ("cannot revise paragraph boundary structures";
+limitation id docx-compare-bookmark-change);
 a paragraph that shows whole as deleted or inserted (added, removed, merged, split or moved) carries its
 simple fields in Word's complex form, but exits 1 for one inside a hyperlink or nested in another field
 (`oxoffice limitations docx --json`, id docx-compare-simple-field-paragraph). `toc rebuild` writes the page
