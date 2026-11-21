@@ -200,8 +200,12 @@ Images from `convert`: one page goes to `OUT.png`, several to `OUT_001.png`, `OU
 multi-page file). `render` writes `NEW_DIR/<name>_page<N>.png` with N one-based; `--pages` is one-based,
 `--page` zero-based. `--font-dir DIR` (`convert` to PDF or images, `render`, `layout`) puts the fonts of a folder (`.ttf`, `.otf`, `.ttc`) before every other font, an embedded face included (a file also counts as the family its file name gives, `Aileron.ttf`), a variable font drawn at the weight a run asks for (a bold run without a bold face gets a synthetic bold); a missing folder is an error, and Markdown and HTML refuse the flag. Without it, oxoffice uses its bundled
 metric-compatible families (Liberation for Arial, Times New Roman, Courier New; Carlito for Calibri; Caladea
-for Cambria), also for a font it does not bundle, the same way in `convert`, `render`, `layout` and Python;
-`--system-fonts` (Python `system_fonts=True`) looks the system fonts up instead. Markdown and HTML hold the body, then text boxes,
+for Cambria), also for a font it does not bundle, the same way in `convert`, `render`, `layout` and Python.
+A character none of those fonts draws (most Chinese, Japanese and Korean text) takes a system font that has it,
+named in a diagnostic, or stays an empty box when the machine has none; `--bundled-fonts-only` (Python
+`bundled_fonts_only=True`) never takes a system font, for the same output on every machine.
+`--system-fonts` (Python `system_fonts=True`) looks the font families up in the system fonts first; the two
+flags exclude each other. Markdown and HTML hold the body, then text boxes,
 headers, footers, footnotes and endnotes, one section per part, a chart as a table of its cached data, and leave
 comments out.
 An input named `.md` / `.markdown` is read as Markdown (CommonMark with GitHub tables), one named `.html` /
