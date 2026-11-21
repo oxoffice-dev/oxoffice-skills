@@ -12,21 +12,21 @@ for anything finer. Use them for every .docx task. Names follow python-docx wher
 
 ## Setup, once per session
 
-Written for **oxoffice 0.1.0**. Take the first way that works, keep it. Each defines two shell functions (bash,
+Written for **oxoffice 0.2.0**. Take the first way that works, keep it. Each defines two shell functions (bash,
 zsh): `ox`, the CLI, and `oxpy`, a Python with oxoffice. Shell state is lost between tool calls: define them first.
 
-1. **Already installed**: `oxoffice --version` prints `oxoffice 0.1.0` and `python3 -c "import oxoffice;
-   print(oxoffice.__version__)"` prints `0.1.0`: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`.
+1. **Already installed**: `oxoffice --version` prints `oxoffice 0.2.0` and `python3 -c "import oxoffice;
+   print(oxoffice.__version__)"` prints `0.2.0`: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`.
    Another version: leave it alone.
-2. **uv**: `ox() { uvx --python '>=3.10' --from oxoffice==0.1.0 oxoffice "$@"; }`,
-   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with oxoffice==0.1.0 python "$@"; }`.
+2. **uv**: `ox() { uvx --python '>=3.10' --from oxoffice==0.2.0 oxoffice "$@"; }`,
+   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with oxoffice==0.2.0 python "$@"; }`.
 3. **pip in a virtual environment** of its own, made once (`Scripts` for `bin` on Windows):
 
    ```bash
-   V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0"
-   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.1.0; }
-   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0/bin/oxoffice" "$@"; }
-   oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0/bin/python" "$@"; }
+   V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0"
+   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.2.0; }
+   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0/bin/oxoffice" "$@"; }
+   oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0/bin/python" "$@"; }
    ```
 
 4. **pixi or conda**, then 5. **the CLI alone** (no Python: Python steps go to 6): `references/install.md`.
@@ -40,7 +40,7 @@ PYTHONPATH="$SKILL/scripts" oxpy my_script.py       # when the script imports do
 ```
 
 `SKILL` is the folder of this SKILL.md (the base directory shown when it loaded); `scripts/docx_ops.py` holds the
-helpers oxoffice 0.1.0 lacks. Never alias `oxoffice.docx` as `docx` (python-docx). Windows: `references/install.md`.
+helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (python-docx). Windows: `references/install.md`.
 
 ## Rules that prevent damage
 

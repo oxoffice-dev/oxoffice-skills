@@ -1,8 +1,7 @@
 # pptx examples
 
 Every block runs on each push to oxoffice's `main`, against the wheel and the CLI just built. Conventions, as set
-up in SKILL.md: `ox` runs the CLI, `SKILL` is this skill's folder, and Python blocks run with
-`PYTHONPATH="$SKILL/scripts" oxpy`, so that `import pptx_ops` works. `deck.pptx` is the input;
+up in SKILL.md: `ox` runs the CLI and Python blocks run with `oxpy`. `deck.pptx` is the input;
 `Aileron-Regular.ttf` (a CC0-1.0 font) and `photo.png` stand for files the user supplies; outputs go to new files.
 Blocks run in order in one folder.
 
@@ -11,15 +10,16 @@ Blocks run in order in one folder.
 ```bash
 ox pptx outline --notes deck.pptx
 ox pptx text --json deck.pptx > deck.json
-ox pptx inspect --json deck.pptx > structure.json     # slide_details: every shape, groups' children included
+ox pptx shapes deck.pptx --slide 2                  # every shape, a group's members indented under it
+ox pptx inspect --json deck.pptx > structure.json     # slide_details: geometry, text and autofit of each shape
 ```
 
 ```python
-import pptx_ops, oxoffice.pptx
+import oxoffice.pptx
 prs = oxoffice.pptx.Presentation("deck.pptx")
 for k, slide in enumerate(prs.slides):
     title = slide.shapes.title.text if slide.shapes.title else ""
-    texts = [sh.text for _, sh in pptx_ops.walk(slide.shapes) if sh.has_text_frame and sh.text]
+    texts = [sh.text for _, sh in slide.shapes.walk() if sh.has_text_frame and sh.text]   # groups included
     print(k + 1, title, len(texts), (slide.notes_text or "")[:40])    # notes_text is None without notes
 ```
 

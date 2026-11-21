@@ -49,8 +49,8 @@ In Claude Code:
 /plugin install oxoffice@oxoffice-skills
 ```
 
-Nothing else to set up. The skills are written for **oxoffice 0.1.0** and look for it in this order: an
-`oxoffice` 0.1.0 already installed, then `uvx` / `uv run --with oxoffice==0.1.0`, a virtual environment of its
+Nothing else to set up. The skills are written for **oxoffice 0.2.0** and look for it in this order: an
+`oxoffice` 0.2.0 already installed, then `uvx` / `uv run --with oxoffice==0.2.0`, a virtual environment of its
 own with `pip`, `pixi exec` from prefix.dev, and the release's installer for the command alone. Without any of
 them, they fall back to the built-in Word and PowerPoint skills.
 
@@ -73,7 +73,7 @@ Details in [`skills/docx/references/install.md`](skills/docx/references/install.
 | [`skills/docx/`](skills/docx/) | the Word skill: reading, writing, editing, comments, tracked changes, redlines, conversions |
 | [`skills/pptx/`](skills/pptx/) | the PowerPoint skill: reading, building, editing, rendering, merging decks |
 | `skills/*/references/` | the CLI and Python references, the examples, how to run oxoffice |
-| `skills/*/scripts/` | the few helpers oxoffice 0.1.0 does not offer yet, until it does |
+| `skills/*/scripts/` | the few helpers oxoffice does not offer yet, until it does |
 
 ## 🔒 Privacy
 

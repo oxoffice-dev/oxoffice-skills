@@ -12,21 +12,21 @@ for every .pptx task. `oxoffice limitations pptx` lists what it cannot do yet; r
 
 ## Setup, once per session
 
-Written for **oxoffice 0.1.0**. Take the first way that works, keep it. Each defines two shell functions (bash,
+Written for **oxoffice 0.2.0**. Take the first way that works, keep it. Each defines two shell functions (bash,
 zsh): `ox`, the CLI, and `oxpy`, a Python with oxoffice. Shell state is lost between tool calls: define them first.
 
-1. **Already installed**: `oxoffice --version` prints `oxoffice 0.1.0` and `python3 -c "import oxoffice;
-   print(oxoffice.__version__)"` prints `0.1.0`: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`.
+1. **Already installed**: `oxoffice --version` prints `oxoffice 0.2.0` and `python3 -c "import oxoffice;
+   print(oxoffice.__version__)"` prints `0.2.0`: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`.
    Another version: leave it alone.
-2. **uv**: `ox() { uvx --python '>=3.10' --from oxoffice==0.1.0 oxoffice "$@"; }`,
-   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with oxoffice==0.1.0 python "$@"; }`.
+2. **uv**: `ox() { uvx --python '>=3.10' --from oxoffice==0.2.0 oxoffice "$@"; }`,
+   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with oxoffice==0.2.0 python "$@"; }`.
 3. **pip in a virtual environment** of its own, made once (`Scripts` for `bin` on Windows):
 
    ```bash
-   V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0"
-   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.1.0; }
-   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0/bin/oxoffice" "$@"; }
-   oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0/bin/python" "$@"; }
+   V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0"
+   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.2.0; }
+   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0/bin/oxoffice" "$@"; }
+   oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0/bin/python" "$@"; }
    ```
 
 4. **pixi or conda**, then 5. **the CLI alone** (no Python: Python steps go to 6): `references/install.md`.
@@ -36,11 +36,10 @@ zsh): `ox`, the CLI, and `oxpy`, a Python with oxoffice. Shell state is lost bet
 ```bash
 ox pptx outline deck.pptx
 oxpy my_script.py                                   # or: oxpy - <<'EOF' ... EOF
-PYTHONPATH="$SKILL/scripts" oxpy my_script.py       # when the script imports pptx_ops
 ```
 
-`SKILL` is the folder of this SKILL.md (the base directory shown when it loaded); `scripts/pptx_ops.py` holds the
-helper oxoffice 0.1.0 lacks. Never alias `oxoffice.pptx` as `pptx` (python-pptx). Windows: `references/install.md`.
+`SKILL` is the folder of this SKILL.md (the base directory shown when it loaded). Never alias `oxoffice.pptx` as
+`pptx` (python-pptx). Windows: `references/install.md`.
 
 ## Rules that prevent damage
 
@@ -57,7 +56,7 @@ helper oxoffice 0.1.0 lacks. Never alias `oxoffice.pptx` as `pptx` (python-pptx)
    or `paragraphs` collection taken before them. A retired handle raises `StaleElementError` naming the call:
    write `prs.slides[i].shapes[j]` again (`references/python-api.md`, "Handles").
 4. **Walk groups**: `slide.shapes` lists top-level shapes; a group's children are in `shape.shapes`
-   (`shape_type == MSO_SHAPE_TYPE.GROUP`, value 6). `pptx_ops.walk(slide.shapes)` yields all of them.
+   (`shape_type == MSO_SHAPE_TYPE.GROUP`, value 6). `slide.shapes.walk()` gives `(depth, shape)` for all of them.
 5. **Check the fit after any text change**: `oxoffice pptx fit F` (exit 1 when a frame overflows, with the font scale
    it needs, or cannot be assessed: `cannot-assess`; table cells, layouts and notes too, the whole deck always) or `prs.text_layout()` (the slides' text frames) reports every
    frame whose text overflows, with oxoffice's own line breaks; then render the slide and look at it.
@@ -78,7 +77,7 @@ helper oxoffice 0.1.0 lacks. Never alias `oxoffice.pptx` as `pptx` (python-pptx)
 | Slide text | `oxoffice pptx text [--notes] F` | `shape.text`, `shape.text_frame.paragraphs[k].runs` | |
 | Text with structure and formatting | `oxoffice pptx text --json F` | | paragraphs with `path`, `shape_id`, `level`, runs with their formatting; notes |
 | Titles and outline | `oxoffice pptx outline [--json] [--notes] F` | `slide.shapes.title` | |
-| Structure, shapes, metadata | `oxoffice pptx inspect --json F` | `pptx_ops.walk(slide.shapes)` | `slide_details`: shape tree with ids, names, geometry, text |
+| Structure, shapes, metadata | `oxoffice pptx shapes F [--slide N] [--json]`, `inspect --json F` | `slide.shapes.walk()` (layouts and masters too) | every shape, groups' members included, with id, name, geometry, text |
 | Counted replacement | `oxoffice pptx replace F -p OLD -v NEW --expect N -o OUT`, many pairs: `oxoffice pptx replace F --map pairs.json -o OUT` | `prs.try_replace_text(old, new, expect=n)`, `prs.replace_all([(old, new, n), ...])` | keeps run formatting |
 | Replacement in one slide or one frame | | `slide.try_replace_text(old, new, expect=n)`, `shape.text_frame.try_replace_text(old, new, expect=n)` | the slide's notes too unless `notes=False` |
 | Edit a run, paragraph, text frame | | `run.text`, `run.font.*`, `paragraph.alignment/level/space_*/line_spacing`, `text_frame.margin_*/word_wrap/auto_size/vertical_anchor` | `shape.text = ...` drops run formatting; a bare int is EMU: write `Pt(12)` |

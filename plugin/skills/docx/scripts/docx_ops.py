@@ -1,4 +1,4 @@
-"""Helpers for the steps oxoffice 0.1.0 does not do in one safe call yet. Each one goes away when oxoffice gains
+"""Helpers for the steps oxoffice does not do in one safe call yet. Each one goes away when oxoffice gains
 it (oxoffice specs/2026-11-20-skill-helpers-in-the-library.md). Import it from a script run with the Python that has
 oxoffice (`oxpy`, this folder on PYTHONPATH), or run it as a command:
 

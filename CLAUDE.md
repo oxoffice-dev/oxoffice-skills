@@ -17,9 +17,10 @@ Public repository: nothing specific to a company, a project or a person goes in 
 
 ## Rules
 
-1. The skills describe one oxoffice release, the one their Setup pins (`oxoffice==0.1.0` today). Moving to another
-   release changes every place that names it (`grep -rn '0\.1\.0' plugin README.md`) and means checking every
-   command, flag and Python name the skills cite against it.
+1. The skills describe one oxoffice release, the one their Setup pins (`oxoffice==0.2.0`). Moving to another
+   release changes every place that names it (`grep -rn '0\.2\.0' plugin README.md PRIVACY.md`) and means checking
+   every command, flag and Python name the skills cite against it. While the helpers move into oxoffice, the skills
+   cite its `main` and pin the next release, 0.2.0, not out yet: they are published once it is (`RELEASE.md`).
 2. No tests and no build here. The examples are the contract with oxoffice: its `skill-examples` job runs every
    block of both `examples.md` on each push to oxoffice's `main`, against the wheel just built, from this
    repository's default branch, and checks that every name the skills cite exists (oxoffice

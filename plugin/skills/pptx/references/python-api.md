@@ -125,7 +125,9 @@ by section).
 
 ## Shapes
 
-- `ShapeCollection`: iteration, `title`, `placeholders`, `add_textbox(left, top, width, height)`,
+- `ShapeCollection`: iteration (the collection's own shapes), `walk()` (a list of `(depth, shape)` for every
+  shape, a group before its members, depth 0 for the collection's own; live handles; also on a group's, a layout's
+  and a master's `shapes`), `title`, `placeholders`, `add_textbox(left, top, width, height)`,
   `add_shape(MSO_SHAPE.X, left, top, width, height)` (every preset of python-pptx's `MSO_SHAPE`, or a preset name
   such as `"roundRect"`), `add_connector(MSO_CONNECTOR.X, begin_x, begin_y, end_x, end_y)`, `add_picture(file, left,
   top, width=None, height=None)` (one size alone scales the other, an EMF picture too), `add_table(rows, cols, left,
