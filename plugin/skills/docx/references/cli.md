@@ -41,8 +41,10 @@ the body, its tables, content controls, tracked insertions, simple fields, smart
 and footers with their tables, footnotes and endnotes, counting a header or footer text once per variant part
 (default, first page, even) and a Word text box once. A match that crosses the edge of a content control, an
 insertion, a simple field or a smart tag is not replaced. Always pass `--expect N`: nothing is written unless
-exactly N matches were replaced (without it, any count is written). Occurrences it cannot reach are not in N:
-`docx_ops.py replace` checks that none is left behind.
+exactly N matches were replaced (without it, any count is written). Occurrences it cannot reach are not in N,
+and a literal `replace` refuses, writing nothing, when a paragraph that held the text (outside the comments) still
+holds it after the replacement: the error names the pair, how many are left and where. `--allow-unreached`
+publishes with the reachable occurrences replaced (not with `--regex`, which is not checked).
 `--map` applies the pairs in order (a later pair sees what an earlier one wrote), all or nothing: a pair whose
 `expect` is not met stops with an error naming it ("pair 0: expected 3 replacement(s) of ..., found 2")
 and writes nothing. A pair without `expect` writes whatever it finds, nothing included: give every pair its

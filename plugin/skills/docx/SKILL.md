@@ -48,9 +48,8 @@ helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (pyth
    it. `doc.save(out)` refuses the file a document was opened from, not a `from_bytes` copy (`docx_ops.commented`
    returns one). The editing commands refuse an existing output (`render`, `convert`: `--force`, never for their
    input). Render into a new folder.
-2. **Every edit declares its expected count**, all or nothing: `docx_ops.replace_batch(src, out, [(old, new, n),
-   ...])` also refuses when the text is still there afterwards; `doc.replace_all([(old, new, n)])` and `oxoffice
-   docx replace ... --expect N` do not check that (`references/cli.md`, Editing).
+2. **Every edit declares its expected count**, all or nothing: `doc.replace_all([(old, new, n), ...])` and
+   `oxoffice docx replace ... --expect N` (`--map`) also refuse text left out of their reach (`references/cli.md`).
 3. **Re-fetch handles after an edit.** Formatting setters and page setup keep them; appends (`add_paragraph`,
    `add_run`, `p.text = ...`) retire every `Run` and story item; inserts, removals, row and column edits,
    replacements, pictures, comments and font edits retire every handle: the next use raises
@@ -88,7 +87,7 @@ helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (pyth
 | Where a string occurs | `oxoffice docx count F TEXT [--json]` | `doc.count_text(text)` | by kind, comments too (`--json`: `outside_comments`) |
 | Counts, styles used, metadata | `oxoffice docx inspect --json F`, `meta get/set F` | `doc.word_count()`, `page_count()`, `styles`, `core_properties`, `custom_properties` | |
 | Page of every block | `oxoffice docx layout --json F` | `doc.layout()` | oxoffice's pagination: confirm in Word |
-| Counted replacement | `docx_ops.py replace IN OUT --edit OLD NEW N`, `oxoffice docx replace F -p OLD -v NEW --expect N -o OUT` | `docx_ops.replace_batch`, `doc.replace_all([(old, new, n)])` | crosses runs; only `docx_ops` checks what is left |
+| Counted replacement | `oxoffice docx replace F -p OLD -v NEW --expect N -o OUT` | `doc.replace_all([(old, new, n)])` | crosses runs; refuses text left out of reach |
 | Fill a template or a form | `oxoffice docx replace F --map pairs.json -o OUT`, `fill F --values v.json -o OUT` | `doc.render_template(data)`, `bind_content_controls({tag: v})`, `insert_content_control(loc, ...)` | `--map`: pairs in order, each with its `expect`; unknown tags raise |
 | Word forms, mail merge | | `doc.validate_form(rules)`, `fill_form(rules, assignments)`, `reset_form(rules)`, `protect_form(rules, protection)`, `run.add_legacy_form_field(d)`; `doc.set_mail_merge_package(options)` | content controls and legacy fields; all in one call, all or nothing |
 | Replacement in one paragraph, cell or story item | | `p.replace_text(old, new, expect=1)`, `cell.replace_text(...)`, `doc.replace_text_at(item, ...)` | a wrong count raises, nothing changed |

@@ -44,18 +44,20 @@ ox docx replace report.docx -p "Issue B" -v "Issue C" --expect 2 -o issue-c.docx
 ```
 
 ```python
-import docx_ops
-docx_ops.replace_batch("report.docx", "edited.docx", [
+import oxoffice.docx
+doc = oxoffice.docx.Document.open("report.docx")
+doc.replace_all([                                  # in order, all or nothing
     ("Issue B, for review", "Issue C, for approval", 1),
     ("three points lower", "two points lower", 1),
 ])
+doc.save("edited.docx")
 ```
 
-`replace_batch` raises `docx_ops.EditError`, and writes nothing, when a count differs or when occurrences
-stay out of reach of the replacement (a match across the edge of a content control, a tracked insertion or
-a simple field). The message says where they are. `doc.replace_all([(old, new, n), ...])` and `oxoffice docx
-replace` check the counts, all or nothing, but not what is left. The command line equivalent:
-`oxpy "$SKILL/scripts/docx_ops.py" replace IN OUT --edit OLD NEW COUNT --edit ...`.
+`replace_all` raises, and changes nothing, when a count differs (`ReplacementCountError`) or when occurrences stay
+out of reach of the replacement (`UnreachedTextError`: a match across the edge of a content control, a tracked
+change or a simple field; the message names the paragraphs, their part and style). `allow_unreached=True`
+replaces what it reaches and leaves the rest. Comments are not searched. The command line does the same:
+`oxoffice docx replace F --map pairs.json -o OUT` (`--allow-unreached`).
 
 ## Replace in one paragraph or one table cell
 
@@ -383,7 +385,7 @@ print(rep.entry_count)
 ## Check what you changed
 
 ```bash
-oxpy "$SKILL/scripts/docx_ops.py" replace report.docx checked.docx --edit "three points lower" "two points lower" 1
+ox docx replace report.docx -p "three points lower" -v "two points lower" --expect 1 -o checked.docx
 ox docx validate checked.docx
 ox docx diff report.docx checked.docx
 ox docx render checked.docx -o checked-pages --pages 1-3 --dpi 80   # a new folder: render refuses a page that exists

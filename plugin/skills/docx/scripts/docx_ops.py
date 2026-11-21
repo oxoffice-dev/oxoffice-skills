@@ -2,7 +2,6 @@
 it (oxoffice specs/2026-11-20-skill-helpers-in-the-library.md). Import it from a script run with the Python that has
 oxoffice (`oxpy`, this folder on PYTHONPATH), or run it as a command:
 
-  oxpy docx_ops.py replace IN.docx OUT.docx --edit OLD NEW COUNT [--edit ...] [--allow-unreached]
   oxpy docx_ops.py comment IN.docx OUT.docx --anchor TEXT --text COMMENT --author NAME [--occurrence N] [--in-tables] [--date ISO]
 
 What writes takes an output path that must not exist yet, as the CLI's outputs, and writes it whole or not at all.
@@ -10,7 +9,6 @@ Exit codes: 0 done, 1 refused (nothing written), 2 usage.
 """
 import argparse
 import io
-import json
 import os
 import re
 import sys
@@ -46,41 +44,6 @@ def _package(source):
     if isinstance(source, (bytes, bytearray)):
         return bytes(source)
     return Path(source).read_bytes()
-
-
-def replace_batch(src, out, edits, allow_unreached=False):
-    """Apply [(old, new, expected_count), ...] in order, all or nothing. The edits run once, in memory, and are
-    checked there before anything is saved: nothing is written, and EditError names every problem, when a
-    replacement count differs from its expected count, or when `old` is still in the document after its
-    replacement (a match across the edge of a content control, a tracked insertion or a simple field), unless
-    allow_unreached=True. Counts are oxoffice's: headers and footers once per variant part, a Word text box once."""
-    _new_output(out)
-    probe = oxoffice.docx.Document.open(src)
-    wrong = []
-    for old, new, expected in edits:
-        # what a replacement can reach: every story but the comments
-        seen = sum(n for kind, n in probe.count_text(old).items() if kind != "comment")
-        got = probe.try_replace_text(old, new)
-        if got != expected:
-            wrong.append(f"{old!r}: expected {expected}, found {got}")
-        if allow_unreached:
-            continue
-        if old not in new:
-            left = [(sp.part_name, sp.style, sp.text) for sp in probe.story_paragraphs
-                    if sp.kind != "comment" and old in sp.text]
-            if left:
-                where = "; ".join(f"{name}{f' [{style}]' if style else ''}: {t[:60]!r}" for name, style, t in left[:5])
-                toc = any(style and re.match(r"(?i)(toc|tm|inhalt|verzeichnis)\s*\d", style) for _, style, _ in left)
-                wrong.append(f"{old!r}: {sum(t.count(old) for _, _, t in left)} occurrence(s) left after the replacement, "
-                             f"out of its reach ({where}{'; ...' if len(left) > 5 else ''})"
-                             + ("; table of contents entries come back with rebuild_toc" if toc else "")
-                             + "; pass allow_unreached=True once handled")
-        elif seen > got:
-            wrong.append(f"{old!r}: {seen} occurrence(s) seen, {got} replaced; pass allow_unreached=True once handled")
-    if wrong:
-        raise EditError("; ".join(wrong))
-    probe.save(out)
-    return Path(out)
 
 
 def _starts(text, anchor):
@@ -296,11 +259,6 @@ def _strip(data_in, out, removed, start):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("replace")
-    p.add_argument("src")
-    p.add_argument("out")
-    p.add_argument("--edit", nargs=3, action="append", metavar=("OLD", "NEW", "COUNT"), required=True)
-    p.add_argument("--allow-unreached", action="store_true")
     p = sub.add_parser("comment")
     p.add_argument("src")
     p.add_argument("out")
@@ -315,10 +273,7 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):   # Windows consoles and pipes default to a narrower code page
         sys.stdout.reconfigure(encoding="utf-8")
     try:
-        if a.cmd == "replace":
-            replace_batch(a.src, a.out, [(o, n, int(c)) for o, n, c in a.edit], a.allow_unreached)
-            print(f"wrote {a.out}")
-        elif a.cmd == "comment":
+        if a.cmd == "comment":
             _new_output(a.out)
             doc = oxoffice.docx.Document.open(a.src)
             cid = _comment_checked(doc, a.anchor, a.text, a.author, a.initials, a.occurrence, a.date or _now(),
