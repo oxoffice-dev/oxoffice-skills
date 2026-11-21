@@ -1,21 +1,23 @@
 """Helpers for the steps oxoffice 0.1.0 does not do in one safe call yet. Each one goes away when oxoffice gains
 it (oxoffice specs/2026-11-20-skill-helpers-in-the-library.md). Import it from a script run with the Python that has
-oxoffice (`$PY`, this folder on PYTHONPATH), or run it as a command:
+oxoffice (`oxpy`, this folder on PYTHONPATH), or run it as a command:
 
-  $PY docx_ops.py text IN.docx                                                every paragraph of every story, by part
-  $PY docx_ops.py count IN.docx TEXT                                          occurrences of TEXT by story kind
-  $PY docx_ops.py replace IN.docx OUT.docx --edit OLD NEW COUNT [--edit ...] [--allow-unreached]
-  $PY docx_ops.py comment IN.docx OUT.docx --anchor TEXT --text COMMENT --author NAME [--occurrence N] [--in-tables] [--date ISO]
+  oxpy docx_ops.py text IN.docx                                                every paragraph of every story, by part
+  oxpy docx_ops.py count IN.docx TEXT                                          occurrences of TEXT by story kind
+  oxpy docx_ops.py replace IN.docx OUT.docx --edit OLD NEW COUNT [--edit ...] [--allow-unreached]
+  oxpy docx_ops.py comment IN.docx OUT.docx --anchor TEXT --text COMMENT --author NAME [--occurrence N] [--in-tables] [--date ISO]
 
-What writes takes an output path and saves with `Document.save`, which refuses the file the document was opened
-from. Exit codes: 0 done, 1 refused (nothing written), 2 usage.
+What writes takes an output path that must not exist yet, as the CLI's outputs, and writes it whole or not at all.
+Exit codes: 0 done, 1 refused (nothing written), 2 usage.
 """
 import argparse
 import collections
 import io
 import json
+import os
 import re
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime, timezone
@@ -26,6 +28,12 @@ import oxoffice.docx
 
 class EditError(RuntimeError):
     """An edit could not be done exactly as asked: nothing was written, and `doc` was not changed."""
+
+
+def _new_output(out):
+    """Refuse an output that exists already, the way the oxoffice CLI does."""
+    if Path(out).exists():
+        raise EditError(f"{out} exists: write to a new path, check it, then replace")
 
 
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -115,6 +123,7 @@ def replace_batch(src, out, edits, allow_unreached=False):
     replacement count differs from its expected count, or when `old` is still in the document after its
     replacement (a match across the edge of a content control, a tracked insertion or a simple field), unless
     allow_unreached=True. Counts are oxoffice's: headers and footers once per variant part, a Word text box once."""
+    _new_output(out)
     probe = oxoffice.docx.Document.open(src)
     wrong = []
     for old, new, expected in edits:
@@ -276,7 +285,8 @@ def _comment_checked(doc, anchor, text, author, initials, occurrence, date, in_t
 def commented(doc, anchor, text, author, initials=None, occurrence=1, date=None, in_tables=False):
     """(a commented copy of `doc`, the comment id): the comment of comment_on_text (same arguments and checks),
     anchored once, on a copy that is checked and returned; `doc` itself is never changed. comment_on_text
-    anchors the comment a second time, on `doc`: in a large document, prefer this one."""
+    anchors the comment a second time, on `doc`: in a large document, prefer this one. The copy does not know
+    the file `doc` was opened from, so its `save` does not refuse that file: save it to a new path."""
     copy = oxoffice.docx.Document.from_bytes(doc.to_bytes())
     return copy, _comment_checked(copy, anchor, text, author, initials, occurrence, date or _now(), in_tables)
 
@@ -304,11 +314,10 @@ def strip_generated_bookmarks(src, out, prefix="_Toc"):
     with `prefix` (start and end markers), and return how many it removed. A table of contents rebuilt from
     scratch names its heading bookmarks `_Toc1`, `_Toc2`, ... in document order, so between two versions where a
     heading was added or removed a name moves to another heading, and `compare` refuses the pair
-    (`oxoffice limitations docx`, docx-compare-toc-bookmarks): run this on both copies first. The TOC's links then point at no bookmark in
-    the redline; rebuild the TOC on the accepted result. Refuses `out == src`."""
-    if not isinstance(src, (bytes, bytearray)) and not hasattr(src, "to_bytes") and \
-            Path(src).resolve() == Path(out).resolve():
-        raise EditError("refusing to write over the input; write to a new path")
+    (`oxoffice limitations docx`, docx-compare-toc-bookmarks): run this on both copies first. The TOC's links then
+    point at no bookmark in the redline; rebuild the TOC on the accepted result. Refuses an existing `out`, and
+    writes it through a temporary file."""
+    _new_output(out)
     removed = []
 
     def start(match):
@@ -320,7 +329,20 @@ def strip_generated_bookmarks(src, out, prefix="_Toc"):
             return ""
         return element
 
-    with zipfile.ZipFile(io.BytesIO(_package(src))) as zin, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
+    data_in = _package(src)
+    fd, tmp = tempfile.mkstemp(prefix=".bookmarks.", suffix=".docx", dir=Path(out).resolve().parent)
+    os.close(fd)
+    try:
+        _strip(data_in, tmp, removed, start)
+        os.replace(tmp, out)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    return len(removed)
+
+
+def _strip(data_in, out, removed, start):
+    with zipfile.ZipFile(io.BytesIO(data_in)) as zin, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zout:
         for item in zin.infolist():
             data = zin.read(item.filename)
             if item.filename == "word/document.xml":
@@ -331,7 +353,6 @@ def strip_generated_bookmarks(src, out, prefix="_Toc"):
                              else m.group(0), xml)
                 data = xml.encode("utf-8")
             zout.writestr(item, data)
-    return len(removed)
 
 
 def main():
@@ -358,6 +379,8 @@ def main():
     p.add_argument("--in-tables", action="store_true", help="count and anchor in table cells")
     p.add_argument("--date", help="RFC 3339, default now (UTC)")
     a = ap.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):   # Windows consoles and pipes default to a narrower code page
+        sys.stdout.reconfigure(encoding="utf-8")
     try:
         if a.cmd == "text":
             for name, kind, style, t in story_paragraphs(a.src):
@@ -368,6 +391,7 @@ def main():
             replace_batch(a.src, a.out, [(o, n, int(c)) for o, n, c in a.edit], a.allow_unreached)
             print(f"wrote {a.out}")
         elif a.cmd == "comment":
+            _new_output(a.out)
             doc = oxoffice.docx.Document.open(a.src)
             cid = _comment_checked(doc, a.anchor, a.text, a.author, a.initials, a.occurrence, a.date or _now(),
                                    a.in_tables)
