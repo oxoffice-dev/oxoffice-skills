@@ -1,18 +1,18 @@
-# docx recipes (each block checked on the oxoffice release the skills are written for)
+# docx examples
 
-Conventions, as set up in SKILL.md: `O=${OXOFFICE_HOME:-~/.local/share/oxoffice-skills}/current/bin`, `SKILL` is
-this skill's folder, and Python blocks run with `PYTHONPATH="$SKILL/scripts" $O/python`, so that
-`import docx_ops` works. `report.docx` is the input (`Aileron-Regular.ttf`, a CC0-1.0 font, stands for a
-font file the user supplies); outputs go to new files. Blocks run in order in one
-folder: a later block may read a file an earlier one wrote.
+Every block runs on each push to oxoffice's `main`, against the wheel and the CLI just built. Conventions, as set
+up in SKILL.md: `$OX` runs the CLI, `SKILL` is this skill's folder, and Python blocks run with
+`PYTHONPATH="$SKILL/scripts" $PY`, so that `import docx_ops` works. `report.docx` is the input;
+`Aileron-Regular.ttf` (a CC0-1.0 font) and `photo.png` stand for files the user supplies; outputs go to new files.
+Blocks run in order in one folder: a later block may read a file an earlier one wrote.
 
 ## Read the text and find where things are
 
 ```bash
-$O/oxoffice docx text --json report.docx > report.json        # body and tables, then the other stories in "stories"
-$O/python "$SKILL/scripts/docx_ops.py" text report.docx > all-stories.txt   # every paragraph with its part and style
-$O/python "$SKILL/scripts/docx_ops.py" count report.docx "footbridge"
-$O/oxoffice docx layout --json report.docx > layout.json
+$OX docx text --json report.docx > report.json        # body and tables, then the other stories in "stories"
+$PY "$SKILL/scripts/docx_ops.py" text report.docx > all-stories.txt   # every paragraph with its part and style
+$PY "$SKILL/scripts/docx_ops.py" count report.docx "footbridge"
+$OX docx layout --json report.docx > layout.json
 ```
 
 Plain `oxoffice docx text` shows the same accepted view (tracked insertions in, deletions out): the body, then each
@@ -27,8 +27,8 @@ heads = [(i, p.style, p.text) for i, p in enumerate(doc.paragraphs) if (p.style 
 i = next(i for i, _, t in heads if t == "Recommendations")
 bi = doc.find_content_index(doc.paragraphs[i])
 page = next(f.physical_page for f in doc.layout() if f.body_index == bi)
-# every paragraph with its path, table cells included
-cells = [p for p in docx_ops.textmap("report.docx") if len(p["path"]) > 1]
+# every paragraph of the table cells (nested tables: cell.tables)
+cells = [p for t in doc.tables for row in t.rows for c in row.cells for p in c.paragraphs]
 # headers and footers, one story per variant part
 footers = [t for kind, t in docx_ops.all_text(doc) if kind == "footer"]
 print(len(heads), bi, page, len(cells), footers)
@@ -37,7 +37,7 @@ print(len(heads), bi, page, len(cells), footers)
 ## Counted replacements, all or nothing
 
 ```bash
-$O/oxoffice docx replace report.docx -p "Issue B" -v "Issue C" --expect 2 -o issue-c.docx
+$OX docx replace report.docx -p "Issue B" -v "Issue C" --expect 2 -o issue-c.docx
 ```
 
 ```python
@@ -50,20 +50,21 @@ docx_ops.replace_batch("report.docx", "edited.docx", [
 
 `replace_batch` raises `docx_ops.EditError`, and writes nothing, when a count differs or when occurrences
 stay out of reach of the replacement (a match across the edge of a content control, a tracked insertion or
-a simple field). The message says where they are. `oxoffice docx replace` does not make that second check. The command line equivalent:
-`$O/python "$SKILL/scripts/docx_ops.py" replace IN OUT --edit OLD NEW COUNT --edit ...`.
+a simple field). The message says where they are. `doc.replace_all([(old, new, n), ...])` and `oxoffice docx
+replace` check the counts, all or nothing, but not what is left. The command line equivalent:
+`$PY "$SKILL/scripts/docx_ops.py" replace IN OUT --edit OLD NEW COUNT --edit ...`.
 
 ## Replace in one paragraph or one table cell
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 # "high points of the deck" is in several paragraphs: change it in the method paragraph only
 i = next(k for k, p in enumerate(doc.paragraphs) if p.text.startswith("Drainage performance was checked"))
 doc.paragraphs[i].replace_text("high points of the deck", "high points of each span", expect=1)
 t = next(k for k, tb in enumerate(doc.tables) if tb.cell(0, 0).text == "Ref")
 doc.tables[t].cell(1, 5).replace_text("No action", "Monitor", expect=1)   # F01's action, not the other rows'
-docx_ops.save_atomic(doc, "scoped.docx", "report.docx")
+doc.save("scoped.docx")
 ```
 
 A count other than `expect` raises `oxoffice.docx.ReplacementCountError` and changes nothing. The match may cross
@@ -74,16 +75,16 @@ paragraph, a comment, a Word text box: both its copies).
 ## Rewrite without losing or spreading run formatting
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document()
 p = doc.add_paragraph("")
 p.add_run("Note:").font.bold = True                      # a bold run-in lead
 p.add_run(" access to the soffit needs a permit.")
-docx_ops.save_atomic(doc, "lead.docx")
+doc.save("lead.docx")
 doc = oxoffice.docx.Document.open("lead.docx")
 doc.paragraphs[0].replace_text("a permit", "two permits", expect=1)   # anchored after the lead
-docx_ops.save_atomic(doc, "lead-edited.docx", "lead.docx")
-runs = lambda f: [[(r["text"], r["formatting"]) for r in q["runs"]] for q in docx_ops.textmap(f)]
+doc.save("lead-edited.docx")
+runs = lambda f: [[(r.text, r.font.bold) for r in q.runs] for q in oxoffice.docx.Document.open(f).paragraphs]
 before, after = runs("lead.docx"), runs("lead-edited.docx")
 assert after[0][0] == before[0][0] and after[0][1][1] == before[0][1][1]   # the lead and the rest keep their format
 ```
@@ -92,12 +93,12 @@ assert after[0][0] == before[0][0] and after[0][1][1] == before[0][1][1]   # the
 on this paragraph both lose the lead, one by dropping its bold, the other by making the whole paragraph bold. A
 replacement whose old text starts inside the bold lead makes its new text bold too: anchor after the lead, or
 edit `runs[k].text`. A placeholder filled in its own highlighted run keeps the highlight. `oxoffice docx diff` compares
-text only: compare the runs and their `formatting` (`oxoffice docx text --json`, `docx_ops.textmap`) as well.
+text only: compare the runs and their formatting (`oxoffice docx text --json`, `runs[k].font`) as well.
 
 ## A new paragraph after an anchor, with the anchor's formatting
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 i = next(k for k, p in enumerate(doc.paragraphs) if p.text.startswith("None of these defects"))
 bi = doc.find_content_index(doc.paragraphs[i])
@@ -106,7 +107,7 @@ new = i + 1                                   # flow index of the clone
 doc.paragraphs[new].runs[0].text = "The next principal inspection is due in 2031."
 for k in range(1, len(doc.paragraphs[new].runs)):
     doc.paragraphs[new].runs[k].text = ""
-docx_ops.save_atomic(doc, "added.docx", "report.docx")
+doc.save("added.docx")
 ```
 
 Clone only a plain paragraph: a clone copies fields and hyperlinks, and bookmarks under a new name
@@ -115,13 +116,13 @@ Clone only a plain paragraph: a clone copies fields and hyperlinks, and bookmark
 ## Delete or move a block
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 i = next(k for k, p in enumerate(doc.paragraphs) if p.text.startswith("Access equipment, traffic management"))
 doc.remove_content(doc.find_content_index(doc.paragraphs[i]))
 j = next(k for k, p in enumerate(doc.paragraphs) if p.text == "The main findings are:")
 doc.move_content(doc.paragraphs[j], doc.find_content_index(doc.paragraphs[j]) + 2)   # counted before the move
-docx_ops.save_atomic(doc, "restructured.docx", "report.docx")
+doc.save("restructured.docx")
 ```
 
 Several neighbouring blocks go in one edit with `doc.remove_content_range(start, end)` (body indices, `end`
@@ -136,13 +137,13 @@ i, start, _ = docx_ops.locate(doc, "safety of path users")      # flow index, ru
 first, last = docx_ops.isolate(doc, i, start, start + len("safety of path users"))
 for k in range(first, last):
     doc.paragraphs[i].runs[k].font.bold = True
-docx_ops.save_atomic(doc, "bold.docx", "report.docx")
+doc.save("bold.docx")
 ```
 
 ## Style, numbering, spacing
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 i = next(k for k, p in enumerate(doc.paragraphs) if p.text.startswith("The overall condition index"))
 doc.paragraphs[i].style = "caption"                      # an id or a name, KeyError when the document has neither
@@ -153,19 +154,19 @@ doc.paragraphs[j].numbering = (doc.paragraphs[j].numbering[0], 1)   # one level 
 doc.set_default_paragraph_format(space_after=oxoffice.docx.Pt(6), line_spacing=1.15)   # what paragraphs inherit (w:pPrDefault)
 assert doc.default_paragraph_format.space_after == oxoffice.docx.Pt(6)
 assert "w:pPrDefault" in doc.part_xml("word/styles.xml")   # any part's XML as a save would write it, read-only
-docx_ops.save_atomic(doc, "styled.docx", "report.docx")
+doc.save("styled.docx")
 ```
 
 ## A heading numbered by its style
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document()
 steps = doc.add_numbering_instance(doc.add_numbering_definition([oxoffice.docx.ListLevel(format="decimal", text="%1.")]))
 doc.link_style_to_numbering("Heading 1", steps, 0)          # every Heading 1 is numbered by its style
 doc.add_paragraph("Scope")
 doc.paragraphs[0].style = "Heading 1"
-docx_ops.save_atomic(doc, "style-numbered.docx")
+doc.save("style-numbered.docx")
 p = oxoffice.docx.Document.open("style-numbered.docx").paragraphs[0]
 assert p.numbering is None and p.text == "Scope"           # the page shows "1. Scope"
 ```
@@ -177,7 +178,7 @@ doubles it.
 ## A new list item, and the lead-in kept with its list
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 words = doc.word_count()
 lead = next(k for k, p in enumerate(doc.paragraphs) if p.text == "The main findings are:")
@@ -189,7 +190,7 @@ doc.paragraphs[last + 1].runs[0].text = "the lighting columns need repainting."
 for k in range(1, len(doc.paragraphs[last + 1].runs)):
     doc.paragraphs[last + 1].runs[k].text = ""
 doc.paragraphs[lead].paragraph_format.keep_with_next = True   # the lead-in never ends a page alone
-docx_ops.save_atomic(doc, "list.docx", "report.docx")
+doc.save("list.docx")
 new = oxoffice.docx.Document.open("list.docx")
 assert new.paragraphs[last + 1].numbering == new.paragraphs[last].numbering
 print(words, new.word_count())                               # count the words before and after
@@ -202,7 +203,7 @@ highlight survives.
 ## Tables
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 t = next(k for k, tb in enumerate(doc.tables) if tb.cell(0, 0).text == "Item")
 n = len(doc.tables[t].rows)
@@ -211,42 +212,43 @@ new = n - 1                                               # the clone sits after
 for c, text in enumerate(["Replace the handrail caps", "8", "no.", "40", "320"]):
     doc.tables[t].cell(new, c).text = text
 doc.tables[t].rows[n].cells[-1].text = "13,242"           # the total row moved down by one (merged cells: 2)
-docx_ops.save_atomic(doc, "table.docx", "report.docx")
+doc.save("table.docx")
 ```
 
 ## Replace a picture, add a picture
 
 ```python
-import re, docx_ops, oxoffice.docx
+import struct, oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
-drawing = next(it for it in doc.story_items if it.kind == "drawing")
-xml = drawing.xml.decode() if isinstance(drawing.xml, bytes) else drawing.xml
-rid = re.search(r'r:embed="([^"]+)"', xml).group(1)
-w, h = docx_ops.image_size(doc.image_data(rid))
-new = docx_ops.solid_png(w, h, (40, 90, 140))   # stands for the new picture's bytes; keep the aspect ratio
-doc.replace_image(rid, new)
-docx_ops.save_atomic(doc, "picture-replaced.docx", "report.docx")
+old = doc.pictures()[0]                         # relationship_id, width and height (EMU), bytes, name
+new = open("photo.png", "rb").read()
+w, h = struct.unpack(">II", new[16:24])         # a PNG's size in pixels
+print(old.width / old.height, w / h)            # replace_image keeps the old frame: compare the aspect ratios
+doc.replace_image(old.relationship_id, new)
+doc.save("picture-replaced.docx")
 
 note = oxoffice.docx.Document()
 note.add_paragraph("Figure A1")
 note.add_picture(new, "a1.png", width=oxoffice.docx.Inches(3), height=oxoffice.docx.Inches(3 * h / w))
-docx_ops.save_atomic(note, "picture-added.docx")
+note.save("picture-added.docx")
 ```
 
 ## Comments: on exact text, on a table cell, reply, resolve
 
 ```python
 import docx_ops, oxoffice.docx
+from datetime import datetime, timezone
+now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")   # the date form comments take
 doc = oxoffice.docx.Document.open("report.docx")
 doc, cid = docx_ops.commented(doc, "about 12 mm", "Measured against which reference?", "Reviewer", "RV")  # a checked copy
-rid = doc.reply_to(cid, author="Author", text="The 2019 survey marks.", date=docx_ops.now())
+rid = doc.reply_to(cid, author="Author", text="The 2019 survey marks.", date=now)
 doc.resolve_comment(cid)
 docx_ops.comment_on_text(doc, "spalled concrete", "Which face of the pier?", "Reviewer", in_tables=True)  # part of a cell
 cell = next(it for it in doc.story_items if it.story.kind == "table_cell" and it.kind == "paragraph" and it.text == "Ref")
 doc.add_comment(oxoffice.docx.StoryRunRange(start=oxoffice.docx.StoryRunPosition(item=cell, run_index=0),
                                     end=oxoffice.docx.StoryRunPosition(item=cell, run_index=len(doc.tables[0].cell(0, 0).paragraphs[0].runs))),
-                author="Reviewer", text="Rename this column?", date=docx_ops.now())
-docx_ops.save_atomic(doc, "commented.docx", "report.docx")
+                author="Reviewer", text="Rename this column?", date=now)
+doc.save("commented.docx")
 ```
 
 `comment_on_text` splits runs so that the comment covers exactly the anchor, also inside or after a content
@@ -259,15 +261,15 @@ nested tables included, and the comment covers exactly the anchor inside the cel
 `date=` writes an undated comment.
 
 ```bash
-$O/oxoffice docx comment list --json commented.docx
-$O/python "$SKILL/scripts/docx_ops.py" comment report.docx commented-cli.docx --anchor "about 12 mm" --text "Which reference?" --author "Reviewer"
-$O/python "$SKILL/scripts/docx_ops.py" comment report.docx commented-cell.docx --anchor "spalled concrete" --in-tables --text "Which face?" --author "Reviewer"
+$OX docx comment list --json commented.docx
+$PY "$SKILL/scripts/docx_ops.py" comment report.docx commented-cli.docx --anchor "about 12 mm" --text "Which reference?" --author "Reviewer"
+$PY "$SKILL/scripts/docx_ops.py" comment report.docx commented-cell.docx --anchor "spalled concrete" --in-tables --text "Which face?" --author "Reviewer"
 ```
 
 ## Review pass: what each comment is on, move a thread, delete a paragraph
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("commented.docx")
 for c in doc.comments:                                   # a reply reads its parent's text
     print(c.id, c.parent_id, c.author, repr(c.anchor_text), "->", c.text)
@@ -276,13 +278,13 @@ cid = next(c.id for c in doc.comments if c.parent_id is None and c.anchor_text =
 doc.move_comment_to_text(cid, "bearing positions")       # root and replies, ids and resolved flags kept
 i = next(k for k, p in enumerate(doc.paragraphs) if p.text.startswith("the bearing at pier 2"))
 doc.remove_content(doc.find_content_index(doc.paragraphs[i]))
-docx_ops.save_atomic(doc, "reviewed.docx", "commented.docx")
+doc.save("reviewed.docx")
 ```
 
 ```bash
-$O/oxoffice docx comment list --json reviewed.docx                # anchor_text and anchor of each comment
-$O/oxoffice docx comment move commented.docx 0 --text "bearing positions" -o moved-cli.docx --json
-$O/oxoffice docx validate reviewed.docx                          # exit 1 for a comment left without an anchor
+$OX docx comment list --json reviewed.docx                # anchor_text and anchor of each comment
+$OX docx comment move commented.docx 0 --text "bearing positions" -o moved-cli.docx --json
+$OX docx validate reviewed.docx                          # exit 1 for a comment left without an anchor
 ```
 
 Removing content never leaves a comment pointing at nothing: a comment the removed block covers whole goes
@@ -295,11 +297,11 @@ covers whole the same way.
 
 ```bash
 cp report.docx v1.docx
-$O/oxoffice docx replace v1.docx -p "three points lower" -v "two points lower" --expect 1 -o v2.docx
-$O/oxoffice docx compare v1.docx v2.docx --author "Reviewer" --timestamp 2026-09-27T12:00:00Z --granularity word -o redline.docx --json
-$O/oxoffice docx revision list --json redline.docx
-$O/oxoffice docx revision accept redline.docx --author "Reviewer" -o accepted.docx --json
-$O/oxoffice docx convert redline.docx --to pdf --revision-view tracked --revision-style legal -o redline-tracked.pdf
+$OX docx replace v1.docx -p "three points lower" -v "two points lower" --expect 1 -o v2.docx
+$OX docx compare v1.docx v2.docx --author "Reviewer" --timestamp 2026-09-27T12:00:00Z --granularity word -o redline.docx --json
+$OX docx revision list --json redline.docx
+$OX docx revision accept redline.docx --author "Reviewer" -o accepted.docx --json
+$OX docx convert redline.docx --to pdf --revision-view tracked --revision-style legal -o redline-tracked.pdf
 ```
 
 The redline holds only the edit, in every story (`revision list` shows each revision's story), and
@@ -307,7 +309,7 @@ The redline holds only the edit, in every story (`revision list` shows each revi
 run). In Python: `v1.compare(v2, "Reviewer", timestamp, granularity="word")`. Compare before rebuilding the
 TOC: a TOC rebuilt on the edited side adds its entries to the redline as revisions. Two versions generated again
 from scratch name their heading bookmarks `_Toc1`, `_Toc2`, ... in order, so a heading added before others moves
-the names and `compare` refuses (gaps.md, renumbered heading bookmarks): compare copies without them.
+the names and `compare` refuses (`oxoffice limitations docx`, docx-compare-toc-bookmarks): compare copies without them.
 
 ```python
 import docx_ops, oxoffice.docx
@@ -326,15 +328,15 @@ red, moves green). The default PDF is the accepted view.
 ## Table of contents and page fields
 
 ```bash
-$O/python "$SKILL/scripts/docx_ops.py" toc report.docx toc.docx
+$OX docx toc rebuild report.docx -o toc.docx
 ```
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 rep = doc.rebuild_toc()
 fields = doc.update_layout_backed_fields()
-docx_ops.save_atomic(doc, "fields.docx", "report.docx")
+doc.save("fields.docx")
 print(rep.entry_count, fields.updated_count)
 ```
 
@@ -342,11 +344,11 @@ After a save in Google Docs or Word (the fixture's footer fields are packed with
 fields and stop Word from asking to update them on open:
 
 ```python
-import docx_ops, oxoffice.docx, zipfile
+import oxoffice.docx, zipfile
 doc = oxoffice.docx.Document.open("report.docx")
 doc.update_layout_backed_fields()
 doc.update_fields_on_open = False
-docx_ops.save_atomic(doc, "no-prompt.docx", "report.docx")
+doc.save("no-prompt.docx")
 with zipfile.ZipFile("no-prompt.docx") as z:
     assert b'<w:updateFields w:val="false"/>' in z.read("word/settings.xml")
 ```
@@ -355,7 +357,7 @@ A document without a table of contents gets one with `insert_toc`, before or aft
 `rebuild_toc` fills it:
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document()
 doc.add_paragraph("Inspection report")
 doc.paragraphs[0].style = "Title"
@@ -365,18 +367,18 @@ for heading in ("Scope", "Findings", "Recommendations"):
     doc.paragraphs[-1].style = "Heading 1"
     doc.add_paragraph("Body text. " * 300)
 rep = doc.rebuild_toc()                        # entries, links and page numbers from oxoffice's pagination
-docx_ops.save_atomic(doc, "with-toc.docx")
+doc.save("with-toc.docx")
 print(rep.entry_count)
 ```
 
 ## Check what you changed
 
 ```bash
-$O/python "$SKILL/scripts/docx_ops.py" replace report.docx checked.docx --edit "three points lower" "two points lower" 1
-$O/oxoffice docx validate checked.docx
-$O/oxoffice docx diff report.docx checked.docx
+$PY "$SKILL/scripts/docx_ops.py" replace report.docx checked.docx --edit "three points lower" "two points lower" 1
+$OX docx validate checked.docx
+$OX docx diff report.docx checked.docx
 pages=$(mktemp -d)                                       # render into a new folder each time
-$O/oxoffice docx render checked.docx -o "$pages" --pages 1-3 --dpi 80
+$OX docx render checked.docx -o "$pages" --pages 1-3 --dpi 80
 ls "$pages"
 ```
 
@@ -387,14 +389,14 @@ lays lines at Word's heights: still check in Word before quoting one as Word's.
 ## Page breaks before cutting text
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 breaks = [i for i, p in enumerate(doc.paragraphs) if p.paragraph_format.page_break_before]   # active ones only
 print(doc.page_count(), [(i, doc.paragraphs[i].text[:40]) for i in breaks])
 for i in breaks:
     variant = oxoffice.docx.Document.open("report.docx")
     variant.paragraphs[i].paragraph_format.page_break_before = False
-    docx_ops.save_atomic(variant, f"no-break-{i}.docx", "report.docx")
+    variant.save(f"no-break-{i}.docx")
     print(i, variant.page_count())          # then render the variant and look at the pages around the break
 ```
 
@@ -418,21 +420,21 @@ document's: an image can be used by the theme, a header or a chart alone.
 ## A new document from a template
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")                  # any .docx that defines the styles you need
 end = 1 + max(it.direct_body_index for it in doc.story_items if it.direct_body_index is not None)
 doc.remove_content_range(0, end)                           # every body block in one edit
 doc.add_paragraph("Site visit note")
 doc.paragraphs[0].style = "Heading1"
 doc.add_paragraph("Visited on 27 September 2026.")
-docx_ops.save_atomic(doc, "note.docx")
+doc.save("note.docx")
 ```
 
 `remove_content_range` leaves the section properties, headers, footers, styles and numbering of the template.
 From a .dotx, save as .docx the same way: oxoffice writes the content type the extension names.
 
 ```python
-import docx_ops, oxoffice.docx, zipfile
+import oxoffice.docx, zipfile
 with zipfile.ZipFile("note.docx") as src, zipfile.ZipFile("note.dotx", "w") as dst:   # a .dotx for this example
     for info in src.infolist():
         data = src.read(info.filename)
@@ -441,7 +443,7 @@ with zipfile.ZipFile("note.docx") as src, zipfile.ZipFile("note.dotx", "w") as d
         dst.writestr(info, data)
 doc = oxoffice.docx.Document.open("note.dotx")
 doc.add_paragraph("Filled from the template.")
-docx_ops.save_atomic(doc, "from-template.docx")
+doc.save("from-template.docx")
 with zipfile.ZipFile("from-template.docx") as z:
     assert b"wordprocessingml.document.main+xml" in z.read("[Content_Types].xml")
 ```
@@ -449,7 +451,7 @@ with zipfile.ZipFile("from-template.docx") as z:
 ## A new document with its own styles, a numbered list and properties
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document()                                     # Normal, Title, Heading 1 to 9, List Paragraph...
 doc.core_properties.title = "Inspection checklist"
 doc.core_properties.author = "Claude"
@@ -466,7 +468,7 @@ for text in ("Check the bearings.", "Photograph the deck joints."):
     doc.paragraphs[-1].style = "List Paragraph"
     doc.paragraphs[-1].numbering = (steps, 0)
 doc.paragraphs[1].text = "Bring the 2019 survey marks and a tape."    # one plain run, paragraph style kept
-docx_ops.save_atomic(doc, "checklist.docx")
+doc.save("checklist.docx")
 ```
 
 `add_style` derives the id from the name as Word does (`"Note box"` → `Notebox`). Assign by that id or by
@@ -476,7 +478,7 @@ the name. `set_style` changes only the properties it is given, on a style chosen
 ## Form fields: content controls
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 
 
@@ -495,7 +497,7 @@ doc.set_content_control_type(at(tagged("status")), oxoffice.docx.ContentControlT
     [("Draft", "D"), ("Final", "F")]))                     # (display text, value) pairs
 doc.set_content_control_lock(at(tagged("status")), "sdtLocked")    # Word refuses to delete the control
 assert doc.set_content_control_value_by_tag("status", "Final") == 1
-docx_ops.save_atomic(doc, "form.docx", "report.docx")
+doc.save("form.docx")
 ```
 
 A new control is `rich_text` or `plain_text`; `set_content_control_type` makes it a check box, a date, a combo box,
@@ -506,7 +508,7 @@ custom XML part, as Word's data binding does.
 ## Fill a form, check it, protect it
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 from oxoffice.docx import FormFieldAssignment, FormFieldRule, FormFieldTarget, FormFieldValue, FormResetValue
 doc = oxoffice.docx.Document.open("form.docx")                    # the drop-down "status" of the block above
 anchor = next(p for p in doc.paragraphs if p.text.startswith("The overall condition index"))
@@ -524,7 +526,7 @@ counts = doc.fill_form(rules, [FormFieldAssignment(target=status, value=FormFiel
                                FormFieldAssignment(target=inspector, value=FormFieldValue.text("Inspector A"))])
 assert counts == (1, 1) and doc.validate_form(rules) == ()
 doc.protect_form(rules, oxoffice.docx.DocumentProtection(mode="forms", enforcement=True))   # Word lets users fill fields only
-docx_ops.save_atomic(doc, "filled-form.docx", "form.docx")
+doc.save("filled-form.docx")
 ```
 
 One `fill_form` call takes every value, checked together: an unknown target or a value its field does not accept
@@ -535,20 +537,20 @@ that does not pass it. `reset_form(rules)` writes each rule's reset value back.
 
 ```bash
 printf '# Site visit\n\nVisited on **27 September**.\n\n- bearings\n- deck joints\n\n| Item | State |\n|---|---|\n| Pier 2 | Good |\n' > visit.md
-$O/oxoffice docx convert visit.md --template report.docx -o visit.docx 2> visit-warnings.txt   # styles, headers, footers of report.docx
+$OX docx convert visit.md --template report.docx -o visit.docx 2> visit-warnings.txt   # styles, headers, footers of report.docx
 cat visit-warnings.txt                                     # "Warning: line N: ..." for what was dropped
-$O/oxoffice docx validate visit.docx
+$OX docx validate visit.docx
 ```
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc, warnings = oxoffice.docx.Document.from_html(
     "<h1>Findings</h1><p>See <a href='https://example.com/survey'>the survey</a>.</p><ul><li>Pier 2</li></ul>")
 for w in warnings:
     print(w.location, w.message)                           # what the import dropped or approximated
 heading = next(p for p in doc.paragraphs if p.text == "Findings")
 doc.insert_html("<p><em>Inserted after the heading.</em></p>", after=heading)   # after a body paragraph
-docx_ops.save_atomic(doc, "findings.docx")
+doc.save("findings.docx")
 ```
 
 `from_markdown(text, template=oxoffice.docx.Document.open("brand.dotx"))` and `open_markdown(path)` do what
@@ -558,7 +560,7 @@ as `images=[("pic.png", data, "image/png")]`, they are not read from the disk.
 ## A chart
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 data = oxoffice.docx.CategoryChartData()
 data.categories = ["2024", "2025", "2026"]
@@ -567,7 +569,7 @@ heading = next(p for p in doc.paragraphs if p.text == "Recommendations")
 chart = doc.add_chart(oxoffice.docx.XL_CHART_TYPE.COLUMN_CLUSTERED, data, oxoffice.docx.Inches(5), oxoffice.docx.Inches(3), after=heading)
 doc.set_chart_legend(chart, visible=True, position="b")      # a new chart has no legend
 print(doc.chart_legend(chart))
-docx_ops.save_atomic(doc, "chart.docx", "report.docx")
+doc.save("chart.docx")
 for c in oxoffice.docx.Document.open("chart.docx").charts:       # read back: type, categories, series
     print(c.chart_type, c.categories, [(s.name, s.values) for s in c.series])
 ```
@@ -580,19 +582,19 @@ take. `doc.charts` reads every chart of a document back, in body order.
 First check that the font's licence allows embedding (SKILL.md, rule 10); here Aileron, CC0-1.0.
 
 ```bash
-$O/oxoffice docx font embed report.docx --font Aileron-Regular.ttf --name Aileron --license-authorized \
+$OX docx font embed report.docx --font Aileron-Regular.ttf --name Aileron --license-authorized \
     --license-identity "CC0-1.0: Aileron" -o embedded.docx --json
-$O/oxoffice docx font list --json embedded.docx                    # actual ODTTF part, stored length and decoded length
-$O/oxoffice docx font settings embedded.docx --json
+$OX docx font list --json embedded.docx                    # actual ODTTF part, stored length and decoded length
+$OX docx font settings embedded.docx --json
 ```
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
 doc.embed_font("Aileron", "Aileron-Regular.ttf", "regular",
                license=oxoffice.docx.FontEmbeddingLicense(authorized=True, identity="CC0-1.0: Aileron"))
 doc.paragraphs[0].runs[0].font.name = "Aileron"            # the runs that should show it
-docx_ops.save_atomic(doc, "embedded-py.docx", "report.docx")
+doc.save("embedded-py.docx")
 font = next(f for f in oxoffice.docx.Document.open("embedded-py.docx").fonts if f.name == "Aileron")
 print([(e.kind, len(e.data)) for e in font.embedded_fonts])
 ```

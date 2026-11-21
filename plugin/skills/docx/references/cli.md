@@ -1,6 +1,6 @@
 # oxoffice docx CLI reference
 
-`O=${OXOFFICE_HOME:-~/.local/share/oxoffice-skills}/current/bin`, then `$O/oxoffice docx <command>`. Every command takes
+`$OX docx <command>`, with `$OX` from SKILL.md's Setup (here written `oxoffice docx`). Every command takes
 one file (two for `diff` and `compare`). Exit codes: 0 success; 1 error, with the message on stderr; 2 bad
 command line; 101 an internal panic (report it).
 

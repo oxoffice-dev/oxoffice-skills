@@ -1,6 +1,6 @@
 # oxoffice pptx CLI reference
 
-`O=${OXOFFICE_HOME:-~/.local/share/oxoffice-skills}/current/bin`, then `$O/oxoffice pptx <command>`. Exit codes: 0
+`$OX pptx <command>`, with `$OX` from SKILL.md's Setup (here written `oxoffice pptx`). Exit codes: 0
 success; 1 error, with the message on stderr; 2 bad command line; 101 an internal panic (report it). Slide
 numbers on the command line are one-based.
 

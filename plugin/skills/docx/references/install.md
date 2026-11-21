@@ -1,27 +1,39 @@
-# Installing oxoffice
+# Running oxoffice
 
-The skill installs oxoffice by itself (`scripts/install.py`, below). The other channels are for using
-oxoffice outside the skill, or when the user prefers one. Every channel carries the same build, and the
-`oxoffice` command; the Python channels also carry the `oxoffice` package (`oxoffice.docx`, `oxoffice.pptx`).
+The skills are written for **oxoffice 0.1.0**. Every channel carries the same build and the `oxoffice` command;
+the Python channels also carry the `oxoffice` package (`oxoffice.docx`, `oxoffice.pptx`). SKILL.md's Setup tries
+them in the order below and stops at the first that works. Each way ends with two shell variables, `OX` (the
+command) and `PY` (a Python that imports oxoffice), to set again at the start of every shell command.
 
-| Channel | Command | Gives |
+| Way | `OX` and `PY` | Notes |
 |---|---|---|
-| The skill's installer | `python3 "$SKILL/../../scripts/install.py"` | its own environment under `~/.local/share/oxoffice-skills/current`: `bin/oxoffice` and a `bin/python` that imports oxoffice. The wheel of the version in `oxoffice.json`, checked against the release's `SHA256SUMS`. |
-| PyPI | `pip install oxoffice`, `uv add oxoffice`, `uv tool install oxoffice` | the package and the command in that environment (`uv tool`: the command only) |
-| One-off Python | `uv run --with oxoffice python script.py` | a throwaway environment for one script |
-| conda (prefix.dev) | `pixi global install -c https://prefix.dev/hadim/oxoffice -c conda-forge oxoffice`, or `conda install -c https://repo.prefix.dev/hadim/oxoffice -c conda-forge oxoffice` | the command (`pixi global`), or the package in a conda environment |
-| Shell installer, Linux and macOS | `curl -fsSL https://github.com/oxoffice-dev/oxoffice/releases/latest/download/install.sh \| sh` | the native `oxoffice` binary in `~/.oxoffice/bin`, no Python |
-| Shell installer, Windows | `powershell -ExecutionPolicy Bypass -c "irm https://github.com/oxoffice-dev/oxoffice/releases/latest/download/install.ps1 \| iex"` | the same, in `%USERPROFILE%\.oxoffice\bin` |
-| GitHub release | https://github.com/oxoffice-dev/oxoffice/releases | every archive, wheel and checksum, by hand |
+| 1. Already installed | `OX=oxoffice; PY=python3` | only when `oxoffice --version` and `oxoffice.__version__` both say 0.1.0; never upgrade or downgrade the user's install |
+| 2. uv | `OX="uvx --from oxoffice==0.1.0 oxoffice"; PY="uv run --no-project --with oxoffice==0.1.0 python"` | nothing installed: uv caches the wheel; `--no-project` keeps the user's project out of it |
+| 3. pip in a virtual environment | `V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0"`, then `python3 -m venv "$V" && "$V/bin/pip" install oxoffice==0.1.0` once; `OX="$V/bin/oxoffice"; PY="$V/bin/python"` | a folder of its own, outside the user's folder |
+| 4. pixi | `X="pixi exec -c https://prefix.dev/hadim/oxoffice -c conda-forge -s oxoffice==0.1.0"; OX="$X oxoffice"; PY="$X python"` | the conda packages of the `hadim/oxoffice` channel on prefix.dev, Python from conda-forge |
+| 4. conda | `conda create -y -p "$V" -c https://repo.prefix.dev/hadim/oxoffice -c conda-forge oxoffice=0.1.0` once; then as in 3 | same packages |
+| 5. The CLI alone | `curl -fsSL https://github.com/oxoffice-dev/oxoffice/releases/download/v0.1.0/install.sh \| OXOFFICE_VERSION=0.1.0 OXOFFICE_NO_PATH_UPDATE=1 sh`; `OX=~/.oxoffice/bin/oxoffice` | no Python: the steps that need `PY` fall back to the built-in skill |
+| 6. Nothing works | | tell the user in one line, do the task with the built-in skill |
 
-Pin a version with `oxoffice==X.Y.Z` (PyPI, conda) or `OXOFFICE_VERSION=X.Y.Z` (shell installers).
+**Windows**, in Git Bash: `python` (or `py -3`) for `python3`, and `$V/Scripts/` for `$V/bin/` in 3 and 4;
+`$OX` reaches `oxoffice.exe`. Way 5 runs in PowerShell:
 
-Check a file downloaded by hand before using it:
+```powershell
+$env:OXOFFICE_VERSION = "0.1.0"; $env:OXOFFICE_NO_PATH_UPDATE = "1"
+irm https://github.com/oxoffice-dev/oxoffice/releases/download/v0.1.0/install.ps1 | iex
+```
+
+then `OX=~/.oxoffice/bin/oxoffice.exe` in Git Bash.
+
+The shell installers check the archive against the release's `SHA256SUMS`, and its build provenance when the
+GitHub CLI is signed in. The wheels on PyPI carry attestations, the conda packages are published through
+prefix.dev's trusted publishing. A file downloaded by hand from the
+[release](https://github.com/oxoffice-dev/oxoffice/releases/tag/v0.1.0) is checked with:
 
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing
 gh attestation verify <file> --repo oxoffice-dev/oxoffice
 ```
 
-`oxoffice --version` shows the installed version. The skill's references describe the version in
-`../../oxoffice.json`; with another version, a cited command may differ (`oxoffice <family> <command> --help`).
+Another version than 0.1.0 may differ from what the references cite: check a command with
+`$OX <docx|pptx> <command> --help`, a Python name in the type stubs.

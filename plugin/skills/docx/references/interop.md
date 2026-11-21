@@ -65,12 +65,12 @@ Observed behaviour of Google Docs on a .docx it opens; no test here can exercise
   Otherwise, after a save in Google Docs or Word, which leaves the page fields packed without a cached result,
   refresh the fields with `update_layout_backed_fields()` and set `doc.update_fields_on_open = False`
   (`<w:updateFields w:val="false"/>`): Word asks to update fields on open unless the settings say false
-  (recipes.md, "Table of contents and page fields"). Word and Google Docs can also regenerate a table of
+  (examples.md, "Table of contents and page fields"). Word and Google Docs can also regenerate a table of
   contents without its TOC styles: `rebuild_toc()` writes them back.
 - **Page count is a layout question first.** Before cutting text to save a page, list the active page breaks
   before paragraphs: Google Docs writes `pageBreakBefore` on every paragraph, mostly as `w:val="0"`, and
   `paragraph_format.page_break_before` is True only for an active one. Render a variant without each break and
-  compare; a page count predicted without a render is often wrong (recipes.md, "Page breaks before cutting
+  compare; a page count predicted without a render is often wrong (examples.md, "Page breaks before cutting
   text").
 - **Read text through oxoffice, not the XML.** oxoffice writes the apostrophe and the double quote as `&apos;` and
   `&quot;`: a check that searches `document.xml` as text does not find `owner's`.

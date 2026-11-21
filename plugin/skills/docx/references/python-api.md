@@ -36,7 +36,7 @@ need a rewrite; the ones marked "raises" fail with an error that names the oxoff
 | a new header's `paragraphs[0]` | `doc.section(i).header.add_paragraph(text)`: a new header holds no paragraph |
 | `doc.styles["Normal"]` (raises), and changing it | `next(s for s in doc.styles if s.name == "Normal")` (a snapshot); `doc.set_style("Normal", font_size=oxoffice.docx.Pt(11))` |
 | `tab_stops[i].alignment = ...` (raises) | `del tab_stops[i]`, then `add_tab_stop(position, alignment, leader)` |
-| `add_picture` with a width alone (raises) | both sizes, `add_picture(image, filename, w, h)` (`docx_ops.image_size` gives the ratio), or neither (the image's own size) |
+| `add_picture` with a width alone (raises) | both sizes, `add_picture(image, filename, w, h)` (a picture's `width` and `height` in `doc.pictures()`, or `struct.unpack(">II", data[16:24])` for a PNG's pixels, give the ratio), or neither (the image's own size) |
 | `paragraph._p`, `run._r` (raise) | `paragraph.xml` and `replace_xml(xml)` ("Raw XML") |
 
 ## Three index spaces
@@ -92,15 +92,34 @@ A setter reached through a cell's paragraph or run (`alignment`, `style`, `parag
 cell property setter (`width`, `vertical_alignment`, `shading`, `set_border`, `set_margins`) edit the cell in place: they
 cost the same in any row, whatever the body around the table and the size of `styles.xml`, so a table fills cell by
 cell in a time linear in its cells. `cell.text` and a cell paragraph's `text` cost what a body `p.text` costs, which
-still grows with the body (`references/gaps.md`, edit costs). In a cell inside a content control, a paragraph or run
+still grows with the body (Edit costs, below). In a cell inside a content control, a paragraph or run
 setter still costs a time that grows with the cell's place and the body: for bulk formatting of such tables, write
 each table's cell properties with one `table.replace_xml(xml)` (its `table.xml` edited as a string).
+
+## Edit costs
+
+An edit still costs a little more in a larger body (`oxoffice limitations docx`, docx-edit-cost-grows): at 1000
+paragraphs as Google Docs writes them, `insert_paragraph`, `add_paragraph` and `remove_content` take about 10 ms a
+call, `p.text` 27 ms, `run.text` 0.14 s, the replacements in one paragraph, cell or story item 0.17 s and
+`add_picture` 0.24 s. Calls made once per document cost more: `move_comment` 2 s, `add_heading_hyperlink` 1.6 s,
+`move_content` and internal hyperlinks about 1 s, the section and page calls 0.5 to 0.7 s. A large `styles.xml`
+costs nothing per edit. So:
+
+- Make many replacements in one call: `doc.replace_all([(old, new, n), ...])`, `docx_ops.replace_batch(src, out,
+  [...])`, or for replacements alone in a large file `oxoffice docx replace F --map pairs.json -o OUT`, faster than
+  the binding (docx-python-replace-slower).
+- Make many other edits in a document built aside, which is small, then insert it with one `insert_document`: a
+  new `oxoffice.docx.Document()`, or a copy of the target (`oxoffice.docx.Document.from_bytes(doc.to_bytes())`)
+  emptied by one `remove_content_range(start, end)` to start from its styles.
+- Where the runs' formatting does not matter, one `p.text` per paragraph costs less than a `run.text` on each run.
+- The form operations (`validate_form`, `fill_form`, `reset_form`, `protect_form`) check the whole document on each
+  call (docx-form-cost): pass every rule and assignment in one call.
 
 ## Document
 
 | Member | Notes |
 |---|---|
-| `Document()`, `Document(path or stream)`, `Document.open(path or stream)`, `Document.from_bytes(b)`, `doc.to_bytes()`, `doc.save(path or stream)` | a stream is a binary file object (`io.BytesIO`, `open(f, "rb")`). A new document has Word's usual styles (Normal, Title, Subtitle, Heading 1 to 9, No Spacing, Quote, List Paragraph, Caption, Table Grid). `save` writes the package class its extension names (a .dotx saved as .docx becomes a document), and any other extension too, but `save("x.pdf")` raises `ValueError`: convert with `to_pdf()`. `docx_ops.save_atomic(doc, out, src)` also refuses the input |
+| `Document()`, `Document(path or stream)`, `Document.open(path or stream)`, `Document.from_bytes(b)`, `doc.to_bytes()`, `doc.save(path or stream)` | a stream is a binary file object (`io.BytesIO`, `open(f, "rb")`). A new document has Word's usual styles (Normal, Title, Subtitle, Heading 1 to 9, No Spacing, Quote, List Paragraph, Caption, Table Grid). `save` writes the package class its extension names (a .dotx saved as .docx becomes a document), and any other extension too, but `save("x.pdf")` raises `ValueError`: convert with `to_pdf()`. `save` refuses the file the document was opened from (`open`, `open_encrypted`, `open_flat_opc`), however it is spelled or linked; `save(path, overwrite_source=True)` replaces it. Writing is atomic and keeps the file's mode |
 | `Document.from_markdown(text, *, template=None, images=())`, `Document.open_markdown(path, *, template=None, images=())` → `(Document, diagnostics)` | CommonMark with GitHub tables and strikethrough: headings get Heading N, lists numbering, tables a header row, links hyperlinks, images inline pictures scaled to the text column, block quotes Quote, code HTML Preformatted. Images come from `images=[(name, data, content_type), ...]` only (`[("pic.png", data, "image/png")]` for `![x](pic.png)`), not from the disk: `oxoffice docx convert` reads the files next to the input. `template` is a `Document` or a path whose styles, numbering, headers and footers the new one takes. Each `HtmlDiagnostic` (`location` such as `"bytes 0..23"`, `message`) names what was dropped or approximated |
 | `Document.from_html(html, *, images=())`, `Document.open_html(path, *, images=())` → `(Document, diagnostics)`, `doc.insert_html(html, *, after=paragraph, images=())` → diagnostics | HTML the same way: safe links and data-URI images kept (a `javascript:` link loses its target), `insert_html` after a body `Paragraph` (required: `doc.paragraphs[-1]` for the end). Each `HtmlDiagnostic` has `location` (`html/body/p[1]/a[2]`), `message` and the CSS `property` it is about, or None. Both importers keep a space before or after an underlined, struck, bold or italic span outside it, collapse spaces on both sides of a span edge into one (`a <s>b </s> c` reads `a b c`), and keep `&nbsp;` |
 | `paragraphs`, `tables`, `sections`, `styles`, `stories`, `story_items`, `header_footer_variants`, `hyperlinks`, `comments`, `revisions`, `bookmarks`, `fonts` | read-only collections (sections and styles are tuples of snapshots; `revisions` covers every story, `r.story.kind`) |
@@ -122,7 +141,7 @@ each table's cell properties with one `table.replace_xml(xml)` (its `table.xml` 
 | `update_section(i, *, margin_top=, orientation=, page_width=, ...)` → `Section`, `section(i)` → `SectionHandle`, live | `doc.sections` are snapshots; write the page setup with `update_section` or on `doc.section(i)` (`margin_top`, `left_margin`, `page_width`, `orientation = "landscape"`, `gutter`, `header_distance`, `different_first_page_header_footer`...). Switching the orientation swaps width and height |
 | `insert_section(i)`, `remove_section(i)` | `insert_section` adds a section break at section index `i` (an empty paragraph carries it: `len(doc.sections)` after the last one's content); a new section copies the previous one's page size, margins and columns; `remove_section` removes that break, the paragraphs stay |
 | `create_section_story(i, kind, variant)` → `Story`, `unlink_section_story(i, kind, variant)` → `Story`, `link_section_story(i, kind, variant, story)` → `Story` | the lower-level header and footer calls: `kind` `"header"` / `"footer"`, `variant` `"default"` / `"first"` / `"even"`; fill a story with `insert_content(story, fragment)` |
-| `try_replace_text(old, new, *, expect=None)` → int, `replace_all_regex([(pattern, repl), ...])` → int, `replace_all_regex_expected([(pattern, repl, expect), ...])` → counts | literal and regex replacement across runs, in the body, its tables, content controls, tracked insertions, simple fields, smart tags and text boxes (a Word text box once), headers and footers with their tables (once per variant part), footnotes and endnotes. A match across the edge of a content control, an insertion or a simple field is not replaced, nor chart labels (the counts match `oxoffice docx text`): rename a category in the chart's data. With `expect=N`, a different count raises `ReplacementCountError` and changes nothing; `docx_ops.replace_batch` also refuses text left out of reach |
+| `try_replace_text(old, new, *, expect=None)` → int, `replace_all([(old, new, expect), ...])` → counts, `replace_all_regex([(pattern, repl), ...])` → int, `replace_all_regex_expected([(pattern, repl, expect), ...])` → counts | literal and regex replacement across runs, in the body, its tables, content controls, tracked insertions, simple fields, smart tags and text boxes (a Word text box once), headers and footers with their tables (once per variant part), footnotes and endnotes. A match across the edge of a content control, an insertion or a simple field is not replaced, nor chart labels (the counts match `oxoffice docx text`): rename a category in the chart's data. With `expect=N`, a different count raises `ReplacementCountError` and changes nothing (`replace_all`: every pair, all or nothing); `docx_ops.replace_batch` also refuses text left out of reach |
 | `replace_all([(old, new), (old, new, expect), ...])` → tuple of counts | several literal replacements in one call, all or nothing: a pair whose `expect` is not met raises `ReplacementCountError` (naming the pair) and changes nothing |
 | `replace_text_at(item, old, new, *, expect=None)` → int | the same replacement in one `StoryItem` only (`doc.story_items`): a body paragraph or table, a table cell's paragraph, a header, footer or footnote paragraph. A Word text box: both its copies (DrawingML and the VML fallback) are edited and counted once; copies that differ raise `DocxError`, nothing changed. For one body paragraph or cell, `Paragraph.replace_text` and `Cell.replace_text` |
 | `bookmarks` → tuple of `Bookmark` (`id`, `name`, `text`, `range`, `direct_range`, `issue`), `add_bookmark(name, range)` → id | `add_bookmark` takes a body `RunRange`; `direct_range` gives it back that way (None for a bookmark in a table cell or a content-control block), `range` counts paragraphs through tables; `issue` describes a broken marker, None otherwise |

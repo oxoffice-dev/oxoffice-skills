@@ -33,9 +33,12 @@ python-pptx or hand-written XML.
 - ✍️ **Safe edits**: counted find and replace across runs, text edited without losing its formatting, and the input
   never written over.
 - 🔍 **Real tracked changes**: list, accept and reject revisions, and build a redline of two versions.
-- 🔒 **Verified downloads**: the installer checks every download against the release's `SHA256SUMS`, and every
-  release carries a signed build provenance.
-- 🩹 **Honest about gaps**: known limits are listed with a workaround, or a hand-off to the built-in skills.
+- 📌 **One pinned release**: the skills are written and checked for one oxoffice release, and run that one, never
+  whatever happens to be installed.
+- 🧪 **Examples that run**: every example of the skills runs on each push to oxoffice's `main`, against the build
+  of that commit.
+- 🩹 **Honest about gaps**: `oxoffice limitations` lists what the build cannot do yet, each with a workaround, and
+  the skills hand that one step to the built-in skills.
 
 ## 🚀 Install
 
@@ -46,9 +49,10 @@ In Claude Code:
 /plugin install oxoffice@oxoffice-skills
 ```
 
-The first time a skill runs, `plugin/scripts/install.py` downloads the oxoffice release named in
-[`plugin/oxoffice.json`](plugin/oxoffice.json) for your platform (Linux, macOS, Windows), checks it and installs it
-in its own Python environment under `~/.local/share/oxoffice-skills`. Nothing else to set up.
+Nothing else to set up. The skills are written for **oxoffice 0.1.0** and look for it in this order: an
+`oxoffice` 0.1.0 already installed, then `uvx` / `uv run --with oxoffice==0.1.0`, a virtual environment of its
+own with `pip`, `pixi exec` from prefix.dev, and the release's installer for the command alone. Without any of
+them, they fall back to the built-in Word and PowerPoint skills.
 
 oxoffice itself is also available on its own, for use outside the skills:
 
@@ -68,8 +72,8 @@ Details in [`plugin/skills/docx/references/install.md`](plugin/skills/docx/refer
 | --- | --- |
 | [`plugin/skills/docx/`](plugin/skills/docx/) | the Word skill: reading, writing, editing, comments, tracked changes, redlines, conversions |
 | [`plugin/skills/pptx/`](plugin/skills/pptx/) | the PowerPoint skill: reading, building, editing, rendering, merging decks |
-| [`plugin/scripts/install.py`](plugin/scripts/install.py) | the installer, standard library only |
-| [`plugin/oxoffice.json`](plugin/oxoffice.json) | the oxoffice release the skills are written for |
+| `plugin/skills/*/references/` | the CLI and Python references, the examples, how to run oxoffice |
+| `plugin/skills/*/scripts/` | the few helpers oxoffice 0.1.0 does not offer yet, until it does |
 
 ## 🔒 Privacy
 

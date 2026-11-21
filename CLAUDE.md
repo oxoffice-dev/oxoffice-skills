@@ -6,19 +6,25 @@ Public repository: nothing specific to a company, a project or a person goes in 
 
 ## Map
 
-- `plugin/`: what users install. Manifest, skills, `scripts/install.py`, `oxoffice.json` (the oxoffice
-  release the skills are written for), icon and README pictures.
-- `plugin/skills/<name>/SKILL.md`: what an agent reads first. Keep it under 16 KB and its description under
-  800 characters, details go to `references/` (`cli.md`, `python-api.md`, `recipes.md`, `gaps.md`, and
-  `interop.md` for docx).
-- `plugin/skills/<name>/scripts/`: helpers importable from Python and runnable as commands.
-- `.claude-plugin/marketplace.json`: the marketplace entry.
+- `plugin/`: what users install. Manifest (`.claude-plugin/plugin.json`), skills, icon and README pictures.
+- `plugin/skills/<name>/SKILL.md`: what an agent reads first, with the order in which it finds oxoffice. Keep it
+  under 16 KiB and its description under 800 characters; details go to `references/` (`cli.md`, `python-api.md`,
+  `examples.md`, `install.md`, and `interop.md` for docx).
+- `plugin/skills/<name>/references/examples.md`: the examples, run by oxoffice's CI (below).
+- `plugin/skills/<name>/scripts/`: the helpers oxoffice does not offer yet. Each one goes when oxoffice gains it
+  (oxoffice `specs/2026-11-20-skill-helpers-in-the-library.md`); the skills then cite the library call.
+- `.claude-plugin/marketplace.json`: the marketplace entry. `RELEASE.md`: how a version is published.
 
 ## Rules
 
-1. The skills describe one oxoffice release, the one in `plugin/oxoffice.json`. Moving to a new release means
-   checking every command, flag and Python name the skills cite against it, and updating `gaps.md`.
-2. No tests, no build and no release process here: oxoffice is built, tested and released in its own
-   repository. Skill recipes are checked by hand against the pinned release before a change.
-3. Conventional commits, lowercase subject. Never commit or push unless asked. No attribution lines.
-4. Never leave a document open in Word, PowerPoint or another GUI app.
+1. The skills describe one oxoffice release, the one their Setup pins (`oxoffice==0.1.0` today). Moving to another
+   release changes every place that names it (`grep -rn '0\.1\.0' plugin README.md`) and means checking every
+   command, flag and Python name the skills cite against it.
+2. No tests and no build here. The examples are the contract with oxoffice: its `skill-examples` job runs every
+   block of both `examples.md` on each push to oxoffice's `main`, against the wheel just built, from this
+   repository's default branch, and checks that every name the skills cite exists (oxoffice
+   `tests/skills/README.md` says how to run it locally). Run it before pushing a change to the skills.
+3. An example reads `report.docx` or `deck.pptx` and writes new files; `$OX` is the CLI, `$PY` the Python, and
+   blocks run in order in one folder. Known limits come from `oxoffice limitations docx|pptx`, not from a page here.
+4. Conventional commits, lowercase subject. Never commit or push unless asked. No attribution lines.
+5. Never leave a document open in Word, PowerPoint or another GUI app.

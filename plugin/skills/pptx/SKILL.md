@@ -6,39 +6,49 @@ description: "Use this skill any time a PowerPoint file (.pptx or .potx) is invo
 # PowerPoint decks with oxoffice
 
 oxoffice reads and writes the presentation package natively, keeps every part it does not touch byte for byte,
-lays text out with its own line breaker and renders slides itself (no LibreOffice). One release serves
-the `oxoffice pptx` CLI (whole-deck operations) and the `oxoffice.pptx` Python module (everything finer; its API follows
-python-pptx in its main names, not in all). Use them for every .pptx task. The tool is young: the gaps that force another tool for one step are in
-`references/gaps.md`, and every new one you meet is reported (last section).
+lays text out with its own line breaker and renders slides itself (no LibreOffice): the `oxoffice pptx` CLI for
+whole decks, the `oxoffice.pptx` Python module for anything finer (main names as in python-pptx, not all). Use them
+for every .pptx task. `oxoffice limitations pptx` lists what it cannot do yet; report any new gap (last section).
 
 ## Setup, once per session
 
+Written for **oxoffice 0.1.0**. Take the first way that works, keep it for the session. `$OX` runs the CLI, `$PY`
+the Python that imports oxoffice. Shell variables do not survive between tool calls: start each command with them.
+
+1. **Already installed**: `oxoffice --version` prints `oxoffice 0.1.0` and `python3 -c "import oxoffice;
+   print(oxoffice.__version__)"` prints `0.1.0`: `OX=oxoffice; PY=python3`. Another version: leave it alone.
+2. **uv**: `OX="uvx --from oxoffice==0.1.0 oxoffice"; PY="uv run --no-project --with oxoffice==0.1.0 python"`.
+3. **pip in a virtual environment**, made once, outside the user's folder:
+
+   ```bash
+   V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.1.0"
+   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.1.0; }
+   OX="$V/bin/oxoffice"; PY="$V/bin/python"
+   ```
+
+4. **pixi** (conda: `references/install.md`):
+   `X="pixi exec -c https://prefix.dev/hadim/oxoffice -c conda-forge -s oxoffice==0.1.0"; OX="$X oxoffice"; PY="$X python"`.
+5. **The CLI alone**, no Python: the release's installer, `references/install.md`. Steps that need Python go to 6.
+6. **Nothing works** (no network, no build for this platform): tell the user in one line that oxoffice is not
+   available here, and do the task with the built-in `pptx` skill.
+
 ```bash
-SKILL='/path/to/this/skill'                # the folder of this SKILL.md: the base directory shown when it loaded
-python3 "$SKILL/../../scripts/install.py"
-O=${OXOFFICE_HOME:-~/.local/share/oxoffice-skills}/current/bin
-export PYTHONPATH="$SKILL/scripts" PYTHONDONTWRITEBYTECODE=1
-$O/oxoffice pptx outline deck.pptx
-$O/python my_script.py                     # the Python that has oxoffice; `import pptx_ops` works
+$OX pptx outline deck.pptx
+$PY my_script.py                                   # or: $PY - <<'EOF' ... EOF
+PYTHONPATH="$SKILL/scripts" $PY my_script.py       # when the script imports pptx_ops
 ```
 
-`install.py` installs the release named in `../../oxoffice.json` when missing (the GitHub wheel, SHA-256
-checked) and exits 0 once there; other channels (PyPI, conda, curl): `references/install.md`. Repeat the `O=` and `export` lines in
-each new shell. Never alias `oxoffice.pptx` as `pptx` (python-pptx). **Windows**: Git Bash, `python` (or
-`py -3`) for `python3`, `Scripts` for `bin` in `O=`; `$O/oxoffice` reaches `oxoffice.exe`.
-
-**If `install.py` exits 2** (no build here, for example no network access): tell the user in one line that
-oxoffice is not available here, do the task with the built-in `pptx` skill. Exit 1: read the error.
+`SKILL` is the folder of this SKILL.md (the base directory shown when it loaded); `scripts/pptx_ops.py` holds the
+helper oxoffice 0.1.0 lacks. Never alias `oxoffice.pptx` as `pptx` (python-pptx). Windows: `references/install.md`.
 
 ## Rules that prevent damage
 
-1. **Never write over the input.** The editing commands, `render`, `convert` and `thumbnail` refuse an
-   existing output (`convert`, `render`, `thumbnail` and `footer` accept `--force`, never for their own input);
-   `Presentation.save()` does not refuse the input: use `pptx_ops.save_atomic(prs, out, src)`. Render into a
-   new folder each time.
-2. **Every text replacement declares its expected count**: `oxoffice pptx replace ... --expect N` (slides and
-   notes), `prs.try_replace_text(old, new, expect=n)`, or `pptx_ops.replace_batch(src, out, [(old, new, n),
-   ...])`, all or nothing.
+1. **Never write over the input.** `prs.save(out)` refuses the file the deck was opened from; the editing
+   commands, `render`, `convert` and `thumbnail` refuse an existing output (`convert`, `render`, `thumbnail` and
+   `footer` accept `--force`, never for their own input). Render into a new folder each time.
+2. **Every text replacement declares its expected count**, all or nothing: `oxoffice pptx replace ... --expect N`
+   or `--map pairs.json` (slides and notes), `prs.try_replace_text(old, new, expect=n)`,
+   `prs.replace_all([(old, new, n), ...])`.
 3. **Re-fetch the handles an edit retires**: a handle follows its element through moves, inserts and edits
    elsewhere; `text_frame.text =` / `shape.text =`, `clear()` or a replacement retire the paragraphs and runs
    of that frame, `element.replace_xml` what lies below that element, adding or removing table rows or columns
@@ -67,8 +77,8 @@ oxoffice is not available here, do the task with the built-in `pptx` skill. Exit
 | Slide text | `oxoffice pptx text [--notes] F` | `shape.text`, `shape.text_frame.paragraphs[k].runs` | |
 | Text with structure and formatting | `oxoffice pptx text --json F` | | paragraphs with `path`, `shape_id`, `level`, runs with their formatting; notes |
 | Titles and outline | `oxoffice pptx outline [--json] [--notes] F` | `slide.shapes.title` | |
-| Structure, shapes, metadata | `oxoffice pptx inspect --json F` | `pptx_ops.py shapes F [--slide N]` | shape tree with ids, names, geometry |
-| Counted replacement | `oxoffice pptx replace F -p OLD -v NEW --expect N -o OUT`, many pairs: `oxoffice pptx replace F --map pairs.json -o OUT` | `prs.try_replace_text(old, new, expect=n)`, `pptx_ops.replace_batch` | keeps run formatting |
+| Structure, shapes, metadata | `oxoffice pptx inspect --json F` | `pptx_ops.walk(slide.shapes)` | `slide_details`: shape tree with ids, names, geometry, text |
+| Counted replacement | `oxoffice pptx replace F -p OLD -v NEW --expect N -o OUT`, many pairs: `oxoffice pptx replace F --map pairs.json -o OUT` | `prs.try_replace_text(old, new, expect=n)`, `prs.replace_all([(old, new, n), ...])` | keeps run formatting |
 | Replacement in one slide or one frame | | `slide.try_replace_text(old, new, expect=n)`, `shape.text_frame.try_replace_text(old, new, expect=n)` | the slide's notes too unless `notes=False` |
 | Edit a run, paragraph, text frame | | `run.text`, `run.font.*`, `paragraph.alignment/level/space_*/line_spacing`, `text_frame.margin_*/word_wrap/auto_size/vertical_anchor` | `shape.text = ...` drops run formatting; a bare int is EMU: write `Pt(12)` |
 | Bullets, numbering | | `paragraph.bullet = "\u2022"`, `bullet_color`, `auto_number = "arabicPeriod"`, `auto_number_start` | |
@@ -105,25 +115,24 @@ oxoffice is not available here, do the task with the built-in `pptx` skill. Exit
 | What changed | `oxoffice pptx diff A B` | | slide text only |
 | An element with no API | | `shape.element.xml` / `shape.element.replace_xml(xml)` (str), also on text frames, paragraphs, runs, tables, cells, slides, layouts, masters | instead of lxml; malformed XML or an unknown or misplaced element raises and changes nothing |
 
-Commands and signatures: `references/cli.md`, `references/python-api.md` (and the `.pyi` stubs it points
-to). Tested examples: `references/recipes.md`. Ready-made commands: `scripts/pptx_ops.py` (`replace`,
-`overflow`, `shapes`). In a reference, look a name up (`grep -n NAME references/python-api.md`) rather than
-reading the whole file. The skill does not list every method or flag: before concluding that oxoffice cannot do
-something, search the build itself, `grep -n -i WORD` in its type stubs (`_native.pyi`, next to the file
-`$O/python -c "import oxoffice.pptx as m; print(m.__file__)"` prints) and `$O/oxoffice pptx [COMMAND] --help`.
+`oxoffice` above is `$OX`; Python runs with `$PY`. Signatures: `references/cli.md`, `references/python-api.md`
+(`grep -n NAME` them); tested examples: `references/examples.md`. Not everything is listed: before concluding that
+oxoffice cannot do it, `grep -n -i WORD` its stubs (`_native.pyi`, beside `$PY -c "import oxoffice.pptx as m;
+print(m.__file__)"`) and `$OX pptx CMD --help`.
 
 ## When oxoffice cannot do a step
 
-`references/gaps.md` lists each known gap with its workaround and fallback. When a step is blocked: search the
-stubs and `--help` (above), say so in one line to the user, use the workaround if there is one, otherwise do **that step only** with the default
-`pptx` skill (python-pptx), on the file oxoffice saved, keep oxoffice for everything else and for the verification, and report the gap
-unless it is listed.
+`$OX limitations pptx` (`oxoffice.limitations("pptx")`) lists what this build cannot do yet, each with its
+workaround and issue. When a step is blocked: search the stubs, `--help` and the limitations, and say so in one
+line to the user; try the element's raw XML before lxml (`shape.element.xml` / `element.replace_xml(xml)`, also on
+text frames, paragraphs, runs, tables, cells, slides, layouts and masters: `references/python-api.md`, "Raw XML");
+use the workaround, or do **that step only** with the built-in `pptx` skill (python-pptx) on the file oxoffice
+saved, keep oxoffice for everything else and for the verification, and report the gap unless it is listed.
 
 ## Reporting a bug or a missing feature
 
-When oxoffice fails, refuses, loses data, renders wrong, or lacks an API you needed, and `references/gaps.md`
-does not list it: reduce it to a neutral reproduction (a short script that builds its own input, with
-python-pptx if needed, and prints the wrong result next to the expected one; never the user's deck, its
-text, names or paths). Ask the user before writing it to their folder; then write it as
-`oxoffice-findings/YYYY-MM-DD-<slug>.md` in the working folder (what, expected, observed, the script, the
-version from `$O/oxoffice --version`), or give it in the reply. Do not open issues yourself.
+When oxoffice fails, refuses, loses data, renders wrong, or lacks an API you needed, and the limitations do not
+list it: reduce it to a **neutral reproduction**, a short script that builds its own input (python-pptx is fine)
+and prints the wrong result next to the expected one, never the user's deck, text, names or paths. Ask the user,
+then write it as `oxoffice-findings/YYYY-MM-DD-<slug>.md` in the working folder (what, expected, observed, the
+script, `$OX --version`), or give it in the reply. Do not open issues yourself.
