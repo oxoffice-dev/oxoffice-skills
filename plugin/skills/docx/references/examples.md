@@ -313,7 +313,7 @@ and names first, so two such versions compare as they are. `rebuild_toc` writes 
 numbers as simple `PAGEREF` fields; a paragraph shown whole as deleted or inserted carries them in Word's complex
 form, except one inside a hyperlink or nested in another field (`oxoffice limitations docx --json`, id
 docx-compare-simple-field-paragraph). On a Word-saved original, an entry added to a rebuilt TOC, or a new paragraph
-with an `add_field` field, can still be refused, and so is a heading that keeps one bookmark and gains a `_Toc` one from a TOC rebuilt on one side only (id docx-compare-bookmark-change): compare first, then rebuild the TOC of the accepted result. A block content control
+with an `add_field` field, can still be refused. On any pair, a heading that keeps one bookmark and gains a `_Toc` one from a TOC rebuilt on one side only is refused too (id docx-compare-bookmark-change): compare first, then rebuild the TOC of the accepted result. A block content control
 added or removed whole is refused, Word's own TOC included; a TOC of plain paragraphs (`insert_toc`) compares.
 
 ```python
