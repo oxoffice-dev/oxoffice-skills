@@ -92,7 +92,7 @@ def _starts(text, anchor):
     return out
 
 
-def locate(doc, anchor, occurrence=1):
+def _locate(doc, anchor, occurrence=1):
     """(flow index, run offset, body index) of the n-th occurrence of `anchor` within the text of one paragraph
     that is a direct child of the body. Paragraphs in table cells and in block content controls (a table of
     contents, Google Docs blocks) are skipped: comments cannot be anchored there by body index. The offset
@@ -121,9 +121,9 @@ def locate(doc, anchor, occurrence=1):
                     "(table cells and content-control blocks are not searched)")
 
 
-def isolate(doc, flow_index, start, end):
+def _isolate(doc, flow_index, start, end):
     """Split runs so that characters [start, end) of paragraph `flow_index` form whole runs. Offsets count the
-    characters of the paragraph's runs joined, as `locate` returns them (not `Paragraph.text`, which also holds
+    characters of the paragraph's runs joined, as `_locate` returns them (not `Paragraph.text`, which also holds
     the text of simple fields, smart tags and custom XML). Returns the (first, last_exclusive) run indices
     covering them. The paragraph must be a direct child of the body: split_run takes its body index, as
     RunPosition and find_content_index do."""
@@ -151,8 +151,10 @@ def isolate(doc, flow_index, start, end):
 
 
 def _comment(doc, anchor, text, author, initials, occurrence, date):
-    flow, start, bi = locate(doc, anchor, occurrence)
-    first, last = isolate(doc, flow, start, start + len(anchor))
+    # kept for the comment helpers until oxoffice anchors a comment on a text itself; elsewhere use
+    # Paragraph.find_text and Document.isolate_span
+    flow, start, bi = _locate(doc, anchor, occurrence)
+    first, last = _isolate(doc, flow, start, start + len(anchor))
     rng = oxoffice.docx.RunRange(start=oxoffice.docx.RunPosition(body_index=bi, run_index=first),
                          end=oxoffice.docx.RunPosition(body_index=bi, run_index=last))
     return doc.add_comment(rng, author=author, text=text, initials=initials, date=date)

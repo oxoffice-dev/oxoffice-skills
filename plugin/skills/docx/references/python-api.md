@@ -57,8 +57,9 @@ need a rewrite; the ones marked "raises" fail with an error that names the oxoff
 - Run indices of `RunPosition` and `split_run` count the runs `Paragraph.runs` lists, those inside an inline
   content control or a tracked insertion included. `Paragraph.runs` does not hold the text of a simple
   field, a smart tag or a custom XML element, which `Paragraph.text` holds: a character offset in `p.text`
-  is not a run offset. `docx_ops.locate` returns run offsets, and `docx_ops.comment_on_text` finds a text and
-  anchors on it.
+  is not a run offset. `p.find_text(text, occurrence=0)` gives a `TextSpan` (`paragraph`, `start`, `end`) and
+  `doc.isolate_span(span)` splits the runs so that it is whole runs, `(first, last)` with `last` excluded; a tab or
+  a break right before the text stays out of the span. `docx_ops.comment_on_text` finds a text and anchors on it.
 
 ## Handles
 

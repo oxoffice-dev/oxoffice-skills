@@ -134,12 +134,13 @@ excluded): each `remove_content` call costs a pass over the document.
 ## Bold one phrase inside a run
 
 ```python
-import docx_ops, oxoffice.docx
+import oxoffice.docx
 doc = oxoffice.docx.Document.open("report.docx")
-i, start, _ = docx_ops.locate(doc, "safety of path users")      # flow index, run offset, body index
-first, last = docx_ops.isolate(doc, i, start, start + len("safety of path users"))
+i = next(k for k, p in enumerate(doc.paragraphs) if p.find_text("safety of path users"))
+span = doc.paragraphs[i].find_text("safety of path users")       # TextSpan: paragraph, start, end; None if absent
+first, last = doc.isolate_span(span)                            # runs split so that the span is runs[first:last]
 for k in range(first, last):
-    doc.paragraphs[i].runs[k].font.bold = True
+    doc.paragraphs[i].runs[k].font.bold = True                  # re-fetched: the split retired the old handles
 doc.save("bold.docx")
 ```
 

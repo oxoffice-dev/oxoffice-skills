@@ -97,7 +97,7 @@ helpers oxoffice does not offer yet. Never alias `oxoffice.docx` as `docx` (pyth
 | New paragraphs, headings, lists | | `doc.add_heading(text, 1)`, `add_paragraph(text, style="Quote")`, `add_bullet_list_item(text)`, `add_numbered_list_item(text)`, `insert_paragraph(bi, text)` | a list restart: a new `add_numbering_instance` |
 | Delete, move a block | | `remove_content(bi)`, `remove_content_range(start, end)`, `pop_content(bi)` + `insert_content(bi, frag)`, `move_content(source, destination)` | cutting a comment in part raises: move the thread first |
 | Rewrite a paragraph's text | | `doc.paragraphs[i].text = text`, `set_story_text(item, text)` | the setter leaves one plain run; `set_story_text` keeps the first run's format |
-| Format part of a run | | `docx_ops.locate` + `docx_ops.isolate`, then `runs[k].font.bold = True` | |
+| Format part of a run | | `first, last = doc.isolate_span(p.find_text(text))`, then `runs[k].font.bold = True` | re-fetch the paragraph |
 | Paragraph format, style, numbering | | `.paragraph_format.*`, `run.font.*`, `.style = "Heading 1"`, `.numbering = (num_id, level)` | style id or name (`KeyError`: `add_style` first) |
 | New or changed styles, lists | | `doc.add_style(name, based_on=, ...)`, `set_style(style, bold=, ...)`, `set_default_paragraph_format(space_after=)`, `add_numbering_definition([ListLevel(...)])`, `add_numbering_instance(d)`, `link_style_to_numbering(style, num_id, level)` | what a setter is not given keeps its value |
 | Tables | | `t = doc.add_table(r, c, style="Table Grid")`, `.cell(r, c).text`, `.add_row().cells`, `.insert_column(i, before=False)`, `.delete_column(i)`, `.remove_row(i)`, `cell.add_table(r, c)` | |
