@@ -11,16 +11,21 @@ Blocks run in order in one folder.
 ox pptx outline --notes deck.pptx
 ox pptx text --json deck.pptx > deck.json
 ox pptx shapes deck.pptx --slide 2                  # every shape, a group's members indented under it
+ox pptx shapes deck.pptx --slide 2 --json > shapes-2.json   # with depth and path (z-order index in each group)
 ox pptx inspect --json deck.pptx > structure.json     # slide_details: geometry, text and autofit of each shape
 ```
 
 ```python
-import oxoffice.pptx
+import json, oxoffice.pptx
 prs = oxoffice.pptx.Presentation("deck.pptx")
 for k, slide in enumerate(prs.slides):
     title = slide.shapes.title.text if slide.shapes.title else ""
     texts = [sh.text for _, sh in slide.shapes.walk() if sh.has_text_frame and sh.text]   # groups included
     print(k + 1, title, len(texts), (slide.notes_text or "")[:40])    # notes_text is None without notes
+# slide 2 holds cards grouped inside a group: walk() and the CLI both reach their members, at depth 2
+nested = [sh.name for depth, sh in prs.slides[1].shapes.walk() if depth == 2]
+listed = [s["name"] for s in json.load(open("shapes-2.json", encoding="utf-8"))["slides"][0]["shapes"] if s["depth"] == 2]
+assert nested and nested == listed, (nested, listed)
 ```
 
 ## Counted replacements, all or nothing
