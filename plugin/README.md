@@ -33,8 +33,8 @@ python-pptx or hand-written XML.
 - ✍️ **Safe edits**: counted find and replace across runs, text edited without losing its formatting, and the input
   never written over.
 - 🔍 **Real tracked changes**: list, accept and reject revisions, and build a redline of two versions.
-- 📌 **One pinned release**: the skills are written and checked for one oxoffice release, and run that one, never
-  whatever happens to be installed.
+- 📌 **Stable, not frozen**: the skills are written and checked with oxoffice 0.2.0 and run any later release,
+  so a new oxoffice does not wait for a new plugin; CI runs every example against both, every night.
 - 🧪 **Examples that run**: every example of the skills runs on each push to oxoffice's `main`, against the build
   of that commit.
 - 🩹 **Honest about gaps**: `oxoffice limitations` lists what the build cannot do yet, each with a workaround, and
@@ -49,10 +49,10 @@ In Claude Code:
 /plugin install oxoffice@oxoffice-skills
 ```
 
-Nothing else to set up. The skills are written for **oxoffice 0.2.0** and look for it in this order: an
-`oxoffice` 0.2.0 already installed, then `uvx` / `uv run --with oxoffice==0.2.0`, a virtual environment of its
-own with `pip`, `pixi exec` from prefix.dev, and the release's installer for the command alone. Without any of
-them, they fall back to the built-in Word and PowerPoint skills.
+Nothing else to set up. The skills are written for **oxoffice 0.2.0**, take any later version, and look for it in
+this order: an `oxoffice` 0.2.0 or later already installed, then `uvx` / `uv run --with 'oxoffice>=0.2.0'`, a
+virtual environment of its own with `pip`, and `pixi exec` or `conda` from prefix.dev. Without any of them, they
+fall back to the built-in Word and PowerPoint skills.
 
 oxoffice itself is also available on its own, for use outside the skills:
 
@@ -60,9 +60,8 @@ oxoffice itself is also available on its own, for use outside the skills:
 | --- | --- |
 | 🐍 PyPI | `pip install oxoffice`, `uv add oxoffice` or `uv tool install oxoffice` |
 | 🟢 conda | `pixi global install -c https://prefix.dev/hadim/oxoffice -c conda-forge oxoffice` |
-| 🐚 Shell installer | `curl -fsSL https://github.com/oxoffice-dev/oxoffice/releases/latest/download/install.sh \| sh` |
-| 🪟 Windows installer | `powershell -ExecutionPolicy Bypass -c "irm https://github.com/oxoffice-dev/oxoffice/releases/latest/download/install.ps1 \| iex"` |
 | 📦 GitHub release | the [releases page](https://github.com/oxoffice-dev/oxoffice/releases), with checksums and a signed build provenance |
+| 🐚 Installers | the shell and PowerShell installers, in oxoffice's own [install instructions](https://github.com/oxoffice-dev/oxoffice#-install) |
 
 Details in [`skills/docx/references/install.md`](skills/docx/references/install.md).
 
@@ -76,7 +75,10 @@ Details in [`skills/docx/references/install.md`](skills/docx/references/install.
 
 ## 🔒 Privacy
 
-No server, no account, no telemetry. See [PRIVACY.md](https://github.com/oxoffice-dev/oxoffice-skills/blob/main/PRIVACY.md).
+No server, no account, no telemetry. Your documents never leave your machine: oxoffice runs locally and makes
+no network request. The one download is oxoffice itself, once, when no copy is found: from PyPI through uv or
+pip, or from prefix.dev through pixi or conda, and it carries none of your data.
+See [PRIVACY.md](https://github.com/oxoffice-dev/oxoffice-skills/blob/main/PRIVACY.md).
 
 ## 📄 License
 

@@ -12,25 +12,25 @@ for every .pptx task. `oxoffice limitations pptx` lists what it cannot do yet; r
 
 ## Setup, once per session
 
-Written for **oxoffice 0.2.0**. Take the first way that works, keep it. Each defines two shell functions (bash,
-zsh): `ox`, the CLI, and `oxpy`, a Python with oxoffice. Shell state is lost between tool calls: define them first.
+Written and checked with **oxoffice 0.2.0**; any later version runs them too. Take the first way that works, keep
+it. Each defines two shell functions (bash, zsh): `ox`, the CLI, and `oxpy`, a Python with oxoffice. Shell state is
+lost between tool calls: define them first.
 
-1. **Already installed**: `oxoffice --version` prints `oxoffice 0.2.0` and `python3 -c "import oxoffice;
-   print(oxoffice.__version__)"` prints `0.2.0`: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`.
-   Another version: leave it alone.
-2. **uv**: `ox() { uvx --python '>=3.10' --from oxoffice==0.2.0 oxoffice "$@"; }`,
-   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with oxoffice==0.2.0 python "$@"; }`.
+1. **Already installed**: `oxoffice --version` and `python3 -c "import oxoffice; print(oxoffice.__version__)"`
+   both print 0.2.0 or later: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`. Older: leave it.
+2. **uv**: `ox() { uvx --python '>=3.10' --from 'oxoffice>=0.2.0' oxoffice "$@"; }`,
+   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with 'oxoffice>=0.2.0' python "$@"; }`.
 3. **pip in a virtual environment** of its own, made once (`Scripts` for `bin` on Windows):
 
    ```bash
-   V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0"
-   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q oxoffice==0.2.0; }
-   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0/bin/oxoffice" "$@"; }
-   oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-0.2.0/bin/python" "$@"; }
+   V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv"
+   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q 'oxoffice>=0.2.0'; }
+   ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv/bin/oxoffice" "$@"; }
+   oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv/bin/python" "$@"; }
    ```
 
-4. **pixi or conda**, then 5. **the CLI alone** (no Python: Python steps go to 6): `references/install.md`.
-6. **Nothing works** (no network, no build for this platform): tell the user in one line that oxoffice is not
+4. **pixi or conda**: `references/install.md`.
+5. **Nothing works** (no network, no build for this platform): tell the user in one line that oxoffice is not
    available here, and do the task with the built-in `pptx` skill.
 
 ```bash
@@ -134,4 +134,5 @@ When oxoffice fails, refuses, loses data, renders wrong, or lacks an API you nee
 list it: reduce it to a **neutral reproduction**, a short script that builds its own input (python-pptx is fine)
 and prints the wrong result next to the expected one, never the user's deck, text, names or paths. Ask the user,
 then write it as `oxoffice-findings/YYYY-MM-DD-<slug>.md` in the working folder (what, expected, observed, the
-script, `ox --version`), or give it in the reply. Do not open issues yourself.
+script, `ox --version`: a version after 0.2.0 may be the cause), or give it in the reply. Do not open issues
+yourself.

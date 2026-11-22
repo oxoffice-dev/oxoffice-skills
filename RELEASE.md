@@ -7,12 +7,13 @@ Setup and in the README, not in the plugin version.
 
 ## Before
 
-- [ ] The oxoffice release the skills pin is out: PyPI `oxoffice==X`, prefix.dev `hadim/oxoffice`, the GitHub
-      release with `install.sh` and `install.ps1`. `uvx --from oxoffice==X oxoffice --version` prints it.
-- [ ] The skills cite only what that release has, and pin it everywhere (`grep -rn 'oxoffice==' plugin README.md`).
+- [ ] The oxoffice release the skills name as their floor is out: PyPI `oxoffice==X`, prefix.dev `hadim/oxoffice`.
+      `uvx --from oxoffice==X oxoffice --version` prints it.
+- [ ] The skills cite only what that release has, and name the same floor everywhere
+      (`grep -rn 'oxoffice>=' plugin README.md`).
 - [ ] This repository's CI is green on the release head (`gh run list -w ci.yml -L 1`): every example against the
-      pinned release from PyPI, every cited name, and every install way of `install.md` on Linux, macOS and Windows
-      (conda where the runner has it: its job log warns where not).
+      floor and the latest release from PyPI, every cited name, and every install way of `install.md` on Linux,
+      macOS and Windows (conda where the runner has it: its job log warns where not).
 - [ ] `claude plugin validate .` and `claude plugin validate plugin` pass.
 - [ ] Each `SKILL.md` is under 16 KiB, each description under 800 characters.
 

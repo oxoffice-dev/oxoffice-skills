@@ -1,15 +1,15 @@
 name: CI
 
-# The skills promise two things, checked here against the oxoffice release
-# they pin (`oxoffice==X` in their Setup), on every push to main, every pull
-# request and every night (a release's packages and installers can break
-# without a change here):
+# The skills are written with one oxoffice release, their floor
+# (`oxoffice>=X` in their Setup), and take any later one. They promise two
+# things, checked on every push to main, every pull request and every night
+# (a new oxoffice release can break them without a change here):
 # - every way of installing oxoffice that references/install.md documents
-#   gives that version, on Linux, macOS and Windows (tests/check_install.py;
-#   conda only where the runner has it, install.sh outside Windows and the
-#   PowerShell installer on it);
+#   gives the floor or a later version, on Linux, macOS and Windows
+#   (tests/check_install.py; conda only where the runner has it);
 # - every example of both skills runs and writes what it says, and every name
-#   the skills cite exists (tests/README.md).
+#   the skills cite exists, against the floor and against the latest release
+#   (tests/README.md).
 
 on:
   push:
@@ -61,15 +61,19 @@ jobs:
           if [ -n "${CONDA:-}" ]; then
             if [ "$RUNNER_OS" = Windows ]; then echo "$CONDA/Scripts" >> "$GITHUB_PATH"; else echo "$CONDA/condabin" >> "$GITHUB_PATH"; fi
           fi
-      - name: Every documented way gives the pinned version
+      - name: Every documented way gives the floor or a later version
         env:
           GH_TOKEN: ${{ github.token }}
         run: python tests/check_install.py plugin/skills
 
   examples:
-    name: Examples (ubuntu-latest)
+    name: Examples (oxoffice ${{ matrix.oxoffice }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        oxoffice: [floor, latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -77,13 +81,15 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - name: Install oxoffice at the pinned version
+      - name: Install oxoffice, the floor or the latest release
         id: install
+        env:
+          WHICH: ${{ matrix.oxoffice }}
         run: |
-          pins="$(grep -ohE 'oxoffice==[0-9]+\.[0-9]+\.[0-9]+' plugin/skills/*/SKILL.md | sort -u)"
-          [ "$(wc -l <<< "$pins")" -eq 1 ] || { echo "::error::the skills pin: $pins"; exit 1; }
+          floors="$(grep -ohE 'oxoffice>=[0-9]+\.[0-9]+\.[0-9]+' plugin/skills/*/SKILL.md | sort -u)"
+          [ "$(wc -l <<< "$floors")" -eq 1 ] || { echo "::error::the skills ask for: $floors"; exit 1; }
           python -m pip install --require-hashes -r tests/requirements.txt
-          python -m pip install "$pins"
+          if [ "$WHICH" = floor ]; then python -m pip install "oxoffice==${floors#oxoffice>=}"; else python -m pip install "$floors"; fi
           oxoffice --version
       - name: Run the examples
         timeout-minutes: 15
@@ -100,6 +106,6 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: example-logs
+          name: example-logs-${{ matrix.oxoffice }}
           path: ${{ runner.temp }}/skills
           retention-days: 7

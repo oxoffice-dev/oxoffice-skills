@@ -16,13 +16,15 @@ Public repository: nothing specific to a company, a project or a person goes in 
 
 ## Rules
 
-1. The skills describe one oxoffice release, the one their Setup pins (`oxoffice==0.2.0`). Moving to another
-   release changes every place that names it (`grep -rn '0\.2\.0' plugin README.md PRIVACY.md`) and means checking
-   every command, flag and Python name the skills cite against it, then publishing per `RELEASE.md`. They hold no
-   script: what an agent needs belongs in oxoffice (its `specs/2026-11-20-skill-helpers-in-the-library.md`).
+1. The skills are written and checked with one oxoffice release, the floor their Setup names (`oxoffice>=0.2.0`),
+   and take any later one: a new oxoffice release needs no new plugin while its API stays stable. CI runs the
+   examples against the floor and the latest release. Raise the floor only when the skills start citing something
+   an older release lacks: that changes every place that names it (`grep -rn '0\.2\.0' plugin README.md
+   PRIVACY.md`) and means checking every command, flag and Python name the skills cite, then publishing per
+   `RELEASE.md`. They hold no script: what an agent needs belongs in oxoffice (its `specs/2026-11-20-skill-helpers-in-the-library.md`).
 2. No build here. The examples are the contract with oxoffice: this repository's CI runs every block of both
-   `examples.md` against the release the skills pin, checks that every name the skills cite exists, and installs
-   oxoffice by every way `install.md` documents on Linux, macOS and Windows (conda where the runner has it), on
+   `examples.md` against the floor and the latest release, checks that every name the skills cite exists, and
+   installs oxoffice by every way `install.md` documents on Linux, macOS and Windows (conda where the runner has it), on
    each push, pull request and night
    (`tests/README.md` says how to run it locally). Run it before pushing a change to the skills.
 3. An example reads `report.docx` or `deck.pptx` and writes new files; `ox` is the CLI, `oxpy` the Python (shell
