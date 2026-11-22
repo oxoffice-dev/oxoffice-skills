@@ -1,12 +1,13 @@
 # Running oxoffice
 
-The skills are written and checked with **oxoffice 0.2.0** and take any later version. Every channel carries the
-same build and the `oxoffice` command; the Python channels also carry the `oxoffice` package (`oxoffice.docx`,
-`oxoffice.pptx`). SKILL.md's Setup tries them in the order below and stops at the first that works. Each way
-defines two shell functions, `ox` (the command) and `oxpy` (a Python that imports oxoffice), to define again at the
-start of every shell command: functions behave the same in bash and zsh, and a path with spaces stays one word
-inside them. Each function holds its whole path, so it does not depend on a variable set beside it, and `oxpy` sets
-`PYTHONUTF8=1` so that files and pipes are read and written in UTF-8 on Windows too.
+oxoffice is a prerequisite of the skills, 0.2.0 or later (they are written and checked with 0.2.0). They use the
+one installed, else get it through a package manager. Every channel carries the same build and the `oxoffice`
+command; the Python channels also carry the `oxoffice` package (`oxoffice.docx`, `oxoffice.pptx`). SKILL.md's Setup
+tries them in the order below and stops at the first that works. Each way defines two shell functions, `ox` (the
+command) and `oxpy` (a Python that imports oxoffice), to define again at the start of every shell command:
+functions behave the same in bash and zsh, and a path with spaces stays one word inside them. Each function holds
+its whole path, so it does not depend on a variable set beside it, and `oxpy` sets `PYTHONUTF8=1` so that files and
+pipes are read and written in UTF-8 on Windows too.
 
 1. **Already installed**, only when `oxoffice --version` and `oxoffice.__version__` both say 0.2.0 or later
    (never upgrade or downgrade the user's install):
@@ -50,9 +51,9 @@ inside them. Each function holds its whole path, so it does not depend on a vari
    oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-conda/bin/python" "$@"; }
    ```
 
-5. **Nothing works**: tell the user in one line, and do the task with the built-in skill. oxoffice's own
-   installers are for the user to run, from its
-   [install instructions](https://github.com/oxoffice-dev/oxoffice#-install), never from a skill.
+5. **None works**: tell the user in one line that oxoffice is missing, with its official install methods
+   ([install instructions](https://github.com/oxoffice-dev/oxoffice#-install)), and do the task with the built-in skill. Installing it another
+   way is the user's call.
 
 **Windows**, in Git Bash: `python` (or `py -3`) for `python3`; `Scripts` for `bin` in 3 (`pip`, `oxoffice` and
 `python`); `/python` for `/bin/python` in 4 (conda), the `[ -x ... ]` check included.

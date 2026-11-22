@@ -49,10 +49,10 @@ In Claude Code:
 /plugin install oxoffice@oxoffice-skills
 ```
 
-Nothing else to set up. The skills are written for **oxoffice 0.2.0**, take any later version, and look for it in
-this order: an `oxoffice` 0.2.0 or later already installed, then `uvx` / `uv run --with 'oxoffice>=0.2.0'`, a
-virtual environment of its own with `pip`, and `pixi exec` or `conda` from prefix.dev. Without any of them, they
-fall back to the built-in Word and PowerPoint skills.
+oxoffice is the one prerequisite, 0.2.0 or later (the skills are written and checked with 0.2.0). The skills use
+the `oxoffice` already installed, else get it through `uv`, `pip`, `pixi` or `conda`. Without any of them, they
+tell you how to install it from its [official instructions](https://github.com/oxoffice-dev/oxoffice#-install) and
+fall back to the built-in Word and PowerPoint skills meanwhile.
 
 oxoffice itself is also available on its own, for use outside the skills:
 

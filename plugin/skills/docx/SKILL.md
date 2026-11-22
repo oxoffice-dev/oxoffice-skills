@@ -12,9 +12,9 @@ for anything finer. Use them for every .docx task. Names follow python-docx wher
 
 ## Setup, once per session
 
-Written and checked with **oxoffice 0.2.0**; any later version runs them too. Take the first way that works, keep
-it. Each defines two shell functions (bash, zsh): `ox`, the CLI, and `oxpy`, a Python with oxoffice. Shell state is
-lost between tool calls: define them first.
+Needs **oxoffice** 0.2.0 or later (written and checked with 0.2.0): the one installed, else through a package
+manager. Take the first way that works, keep it. Each defines two shell functions (bash, zsh): `ox`, the CLI, and
+`oxpy`, a Python with oxoffice. Shell state is lost between tool calls: define them first.
 
 1. **Already installed**: `oxoffice --version` and `python3 -c "import oxoffice; print(oxoffice.__version__)"`
    both print 0.2.0 or later: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`. Older: leave it.
@@ -30,8 +30,8 @@ lost between tool calls: define them first.
    ```
 
 4. **pixi or conda**: `references/install.md`.
-5. **Nothing works** (no network, no build for this platform): tell the user in one line that oxoffice is not
-   available here, and do the task with the built-in `docx` skill.
+5. **None works**: tell the user in one line that oxoffice is missing and how to install it (official ways:
+   https://github.com/oxoffice-dev/oxoffice#-install), then do the task with the built-in `docx` skill.
 
 ```bash
 ox docx text --json report.docx
