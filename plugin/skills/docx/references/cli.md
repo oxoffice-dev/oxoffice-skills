@@ -123,9 +123,8 @@ limitation id docx-compare-bookmark-change);
 a paragraph that shows whole as deleted or inserted (added, removed, merged, split or moved) carries its
 simple fields in Word's complex form, but exits 1 for one inside a hyperlink or nested in another field
 (`oxoffice limitations docx --json`, id docx-compare-simple-field-paragraph). `toc rebuild` writes the page
-numbers as simple `PAGEREF` fields, and on a Word-saved ORIGINAL an entry added to a rebuilt TOC, or a new
-paragraph with an `add_field` field, can still exit 1 ("resolved field conversion changed independent semantic or
-source facts"): compare before rebuilding the TOC. A block content control added or removed whole exits 1
+numbers as simple `PAGEREF` fields, so an entry added to or removed from a rebuilt TOC compares, as does a new
+paragraph with an `add_field` field. A block content control added or removed whole exits 1
 ("cannot delete an unmatched content-control"), and Word's own TOC sits in one; a TOC of plain paragraphs, as
 Python's `insert_toc` writes it, compares added or removed whole. Check the exit code and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
 new one inserted; accepting gives the edited chart, rejecting the original. `--ignore-story KIND` (repeatable:
