@@ -1,0 +1,105 @@
+name: CI
+
+# The skills promise two things, checked here against the oxoffice release
+# they pin (`oxoffice==X` in their Setup), on every push to main, every pull
+# request and every night (a release's packages and installers can break
+# without a change here):
+# - every way of installing oxoffice that references/install.md documents
+#   gives that version, on Linux, macOS and Windows (tests/check_install.py;
+#   conda only where the runner has it, install.sh outside Windows and the
+#   PowerShell installer on it);
+# - every example of both skills runs and writes what it says, and every name
+#   the skills cite exists (tests/README.md).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Install (${{ matrix.os }})
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+      - uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+        with:
+          pixi-version: v0.84.2
+          run-install: false
+          cache: false
+      # The runner images that carry conda say where in CONDA (Windows
+      # today); the others skip that way with a warning. Only conda
+      # itself goes on PATH, not its base Python: condabin holds only conda
+      # on Linux and macOS, Scripts holds conda.exe on Windows (condabin's
+      # .bat files do not run from Git Bash).
+      - name: Conda on PATH where the runner has it
+        run: |
+          if [ -n "${CONDA:-}" ]; then
+            if [ "$RUNNER_OS" = Windows ]; then echo "$CONDA/Scripts" >> "$GITHUB_PATH"; else echo "$CONDA/condabin" >> "$GITHUB_PATH"; fi
+          fi
+      - name: Every documented way gives the pinned version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tests/check_install.py plugin/skills
+
+  examples:
+    name: Examples (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install oxoffice at the pinned version
+        id: install
+        run: |
+          pins="$(grep -ohE 'oxoffice==[0-9]+\.[0-9]+\.[0-9]+' plugin/skills/*/SKILL.md | sort -u)"
+          [ "$(wc -l <<< "$pins")" -eq 1 ] || { echo "::error::the skills pin: $pins"; exit 1; }
+          python -m pip install --require-hashes -r tests/requirements.txt
+          python -m pip install "$pins"
+          oxoffice --version
+      - name: Run the examples
+        timeout-minutes: 15
+        run: |
+          python tests/make_fixtures.py "$RUNNER_TEMP/skills/fixtures"
+          python tests/run_examples.py --jobs 4 --skills plugin/skills \
+            --fixtures "$RUNNER_TEMP/skills/fixtures" --work "$RUNNER_TEMP/skills"
+      - name: Check what they wrote
+        run: python tests/check_outputs.py "$RUNNER_TEMP/skills"
+      - name: Check the names the skills cite
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: python tests/check_names.py plugin/skills
+      - name: Keep the logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: example-logs
+          path: ${{ runner.temp }}/skills
+          retention-days: 7
