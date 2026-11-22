@@ -1,6 +1,6 @@
 # oxoffice pptx CLI reference
 
-`O=${OXOFFICE_HOME:-~/.local/share/oxoffice-skills}/current/bin`, then `$O/oxoffice pptx <command>`. Exit codes: 0
+`ox pptx <command>`, with `ox` from SKILL.md's Setup (here written `oxoffice pptx`). Exit codes: 0
 success; 1 error, with the message on stderr; 2 bad command line; 101 an internal panic (report it). Slide
 numbers on the command line are one-based.
 
@@ -18,6 +18,7 @@ numbers on the command line are one-based.
 | `oxoffice pptx text [--notes] F` | slide text in presentation order; `--notes` adds the speaker notes after each slide |
 | `oxoffice pptx text --json F` | `{"slides": [{"slide", "id", "notes", "paragraphs": [{"shape_id", "path", "level", "text", "runs": [{"index", "text", "formatting": {"bold", "italic", "underline", "color", "font", "size_points"}}]}]}]}`; `path` goes through groups, tables and paragraphs |
 | `oxoffice pptx outline [--json] [--notes] F` | each slide's title and the paragraph tree of its other shapes |
+| `oxoffice pptx shapes [--slide N] [--json] F` | every shape of each slide in z-order, a group's members indented under it: `<id> <kind> "<name>" [at L,T size WxH] ["text..."]`; `--json`: per slide, `shapes` with `path` (z-order index in the slide, then in each group), `depth`, `id`, `name`, `kind`, `position`, `size`, `text` |
 | `oxoffice pptx inspect [--json] F` | layouts count, metadata (title, creator, dates), `slide_details` with, per slide, `shape_details`: every shape (id, name, kind, geometry, autofit, children for groups) |
 | `oxoffice pptx comment list [--json] F` | `comments`: one flat list in slide order, threads and replies, each with `slide` (one-based), `id` (GUID), `parent_id`, `author`, `initials`, `date`, `text`, `resolved`, `status` |
 | `oxoffice pptx diff A B` | slide text differences (longest common subsequence); prints nothing when the text is identical |

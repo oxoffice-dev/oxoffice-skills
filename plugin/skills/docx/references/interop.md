@@ -56,8 +56,8 @@ Observed behaviour of Google Docs on a .docx it opens; no test here can exercise
   everything its save rewrote (previous section).
 - **Tracked changes and comments are shared state.** A file under review in Word or Google Docs carries the
   reviewers' threads and revisions: never accept, reject or remove them unless asked; add yours with an
-  author name that says it is a machine (for example "Claude"), never the user's name, and a date (an undated
-  comment shows none). `oxoffice docx text`, `oxoffice docx text --json` and `Paragraph.text` show the accepted view
+  author name that says it is a machine (for example "Claude"), never the user's name, and keep the date
+  oxoffice writes (`undated` leaves the comment without one). `oxoffice docx text`, `oxoffice docx text --json` and `Paragraph.text` show the accepted view
   (insertions in, deletions out), and replacement edits the text inside an insertion, which stays tracked.
 - **Fields and the TOC**: cached field results (TOC page numbers, PAGE, NUMPAGES) come from oxoffice's
   pagination when you refresh them, which is close to Word's and not equal. When exact page numbers matter,
@@ -65,12 +65,12 @@ Observed behaviour of Google Docs on a .docx it opens; no test here can exercise
   Otherwise, after a save in Google Docs or Word, which leaves the page fields packed without a cached result,
   refresh the fields with `update_layout_backed_fields()` and set `doc.update_fields_on_open = False`
   (`<w:updateFields w:val="false"/>`): Word asks to update fields on open unless the settings say false
-  (recipes.md, "Table of contents and page fields"). Word and Google Docs can also regenerate a table of
+  (examples.md, "Table of contents and page fields"). Word and Google Docs can also regenerate a table of
   contents without its TOC styles: `rebuild_toc()` writes them back.
 - **Page count is a layout question first.** Before cutting text to save a page, list the active page breaks
   before paragraphs: Google Docs writes `pageBreakBefore` on every paragraph, mostly as `w:val="0"`, and
   `paragraph_format.page_break_before` is True only for an active one. Render a variant without each break and
-  compare; a page count predicted without a render is often wrong (recipes.md, "Page breaks before cutting
+  compare; a page count predicted without a render is often wrong (examples.md, "Page breaks before cutting
   text").
 - **Read text through oxoffice, not the XML.** oxoffice writes the apostrophe and the double quote as `&apos;` and
   `&quot;`: a check that searches `document.xml` as text does not find `owner's`.

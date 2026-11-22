@@ -1,6 +1,6 @@
 # oxoffice docx CLI reference
 
-`O=${OXOFFICE_HOME:-~/.local/share/oxoffice-skills}/current/bin`, then `$O/oxoffice docx <command>`. Every command takes
+`ox docx <command>`, with `ox` from SKILL.md's Setup (here written `oxoffice docx`). Every command takes
 one file (two for `diff` and `compare`). Exit codes: 0 success; 1 error, with the message on stderr; 2 bad
 command line; 101 an internal panic (report it).
 
@@ -20,7 +20,8 @@ record: `output`, `scope` and the result (`comment_id`, `main_story_revisions`, 
 | Command | Output |
 |---|---|
 | `oxoffice docx text F` | plain text, accepted view of tracked changes (insertions in, deletions out; a paragraph or a table row that a tracked deletion removes prints no line): the body first, one line per paragraph, a table row on one line, then every other story (text boxes, headers, footers, footnotes, endnotes, comments), each part under a line such as `--- header (/word/header1.xml) ---`, a part without text left out. A story part that cannot be read is left out with a warning on stderr (exit 0): `validate` names it |
-| `oxoffice docx text --json F` | `{"paragraphs": [...], "revision_view": "accepted", "scope": "all-supported-stories", "stories": [...]}`: `paragraphs` holds the body and its tables, as if tracked changes were accepted (a paragraph that a tracked deletion removes is left out, the others keep their `body_index`). Each paragraph: `body_index` (top-level block), `path` (list of `{kind, index}` from the block down to the paragraph, through tables and content controls; `[]` for a top-level paragraph), `style` (style id), `numbering` (`{num_id, level}` or null), `text`, `runs` (`index`, `text`, `formatting`: `bold`, `italic`, `underline`, `strike`, `size_points`, `font`, `color`, `highlight`, `language`, `style`, or null; the text inside smart tags, inline custom XML and simple fields is in `text`, not in `runs`). `stories` lists every other story: `kind` (`text_box`, `header`, `footer`, `footnote`, `endnote`, `comment`), `part_name`, `owner_index`, `items` (`index_path`, `kind`, `text`). When a story part cannot be read, `scope` is `main` and `stories` is empty |
+| `oxoffice docx text --json F` | `{"paragraphs": [...], "revision_view": "accepted", "scope": "all-supported-stories", "stories": [...]}`: `paragraphs` holds the body and its tables, as if tracked changes were accepted (a paragraph that a tracked deletion removes is left out, the others keep their `body_index`). Each paragraph: `body_index` (top-level block), `path` (list of `{kind, index}` from the block down to the paragraph, through tables and content controls; `[]` for a top-level paragraph), `style` (style id), `numbering` (`{num_id, level}` or null), `text`, `runs` (`index`, `text`, `formatting`: `bold`, `italic`, `underline`, `strike`, `size_points`, `font`, `color`, `highlight`, `language`, `style`, or null; the text inside smart tags, inline custom XML and simple fields is in `text`, not in `runs`). `stories` lists every other story: `kind` (`text_box`, `header`, `footer`, `footnote`, `endnote`, `comment`), `part_name`, `owner_index`, `items` (`index_path`, `kind`, `style`, `text`). When a story part cannot be read, `scope` is `main` and `stories` is empty |
+| `oxoffice docx count F TEXT [--json]` | occurrences of a literal, case-sensitive text by story kind (`body`, `header`, `footer`, `footnote`, `endnote`, `comment`), the `total` and the total `outside comments`: what `replace` can reach; a count above what `replace` replaces names text out of its reach, such as a match across the edge of a content control |
 | `oxoffice docx inspect [--json] F` | `paragraphs` and `tables` counts, `content_elements`, `styles_used`, `metadata` (title, author, subject, keywords), `word_count`, `character_count` (spaces included), `page_count` (oxoffice's pagination), `pictures` of every story (`relationship_id`, `name`, `description` (the alt text), `title`, `decorative`, `anchored`, `width_emu`, `height_emu`, `content_type`, `story`); content controls: `doc.content_controls()` |
 | `oxoffice docx layout --json F` | `body_items`: for each top-level block, `body_index`, `kind`, `fragments` (`physical_page`, `displayed_page`, `x`, `y`, `width`, `height` in points); a paragraph that a tracked deletion removes has none |
 | `oxoffice docx comment list [--json] F` | `comments`: `id`, `author`, `initials`, `date`, `text`, `parent_id`, `resolved`, in package order; with `--json` also `anchor_text` (the accepted-view text the comment covers, paragraphs joined with a newline; null for a reply), `anchor` (`start` and `end`, each with `story_kind`, `part_name`, `owner_index`, `item_kind`, `index_path`, `direct_body_index` and `run_index`, end exclusive; null for a reply), `anchor_issue` (null, or why the anchor could not be read; the comment is still listed) |
@@ -40,8 +41,10 @@ the body, its tables, content controls, tracked insertions, simple fields, smart
 and footers with their tables, footnotes and endnotes, counting a header or footer text once per variant part
 (default, first page, even) and a Word text box once. A match that crosses the edge of a content control, an
 insertion, a simple field or a smart tag is not replaced. Always pass `--expect N`: nothing is written unless
-exactly N matches were replaced (without it, any count is written). Occurrences it cannot reach are not in N:
-`docx_ops.py replace` checks that none is left behind.
+exactly N matches were replaced (without it, any count is written). Occurrences it cannot reach are not in N,
+and a literal `replace` refuses, writing nothing, when a paragraph that held the text (outside the comments) still
+holds it after the replacement: the error names the pair, how many are left and where. `--allow-unreached`
+publishes with the reachable occurrences replaced (not with `--regex`, which is not checked).
 `--map` applies the pairs in order (a later pair sees what an earlier one wrote), all or nothing: a pair whose
 `expect` is not met stops with an error naming it ("pair 0: expected 3 replacement(s) of ..., found 2")
 and writes nothing. A pair without `expect` writes whatever it finds, nothing included: give every pair its
@@ -64,7 +67,7 @@ legacy form field names (`{"client": "Acme", "Status": "Final", "Signer": "Jane 
 control takes a string (`"true"` ticks a check box), a legacy text field a string, a legacy check box `true` /
 `false`, a legacy drop-down the index of its entry; `--json` lists each key's `target_kind` and `count`. A key that
 names no field or several, or a value of the wrong kind, exits 1 and writes nothing; a control takes its value as Word
-does: the placeholder flag goes, a date control gets `w:fullDate`, a drop-down takes one of its items (value or display
+does: the placeholder flag goes, a date control gets `w:fullDate` and shows the date in its own format and language (limitation id docx-date-control-names), a drop-down takes one of its items (value or display
 text). `meta set` writes the core properties it is given and custom
 properties (`--custom` repeatable, `TYPE` one of `str`, `int`, `float`, `bool`, `filetime`
 (`2026-10-31T00:00:00Z`), `empty`: `Client=str:Acme`, `Count=int:4`); `meta get --json` prints them all
@@ -74,9 +77,9 @@ properties (`--custom` repeatable, `TYPE` one of `str`, `int`, `float`, `bool`, 
 a new folder.
 
 ```bash
-oxoffice docx comment add F --start-paragraph P --start-run S --end-paragraph Q --end-run E --author A [--initials I] --text T [--date RFC3339] -o OUT [--json]
-oxoffice docx comment add F --anchor TEXT [--occurrence K] --author A --text T [--date RFC3339] -o OUT   # K from 0, main story, cells included
-oxoffice docx comment reply F --id ID --author A [--initials I] --text T [--date RFC3339] -o OUT [--json]
+oxoffice docx comment add F --start-paragraph P --start-run S --end-paragraph Q --end-run E --author A [--initials I] --text T [--date RFC3339 | --undated] -o OUT [--json]
+oxoffice docx comment add F --anchor TEXT [--occurrence K] [--tables-only] --author A --text T [--date RFC3339 | --undated] -o OUT   # K from 0
+oxoffice docx comment reply F --id ID --author A [--initials I] --text T [--date RFC3339 | --undated] -o OUT [--json]
 oxoffice docx comment resolve F --id ID -o OUT [--json]
 oxoffice docx comment move F ID --text TEXT [--occurrence K] -o OUT [--json]   # a thread root onto TEXT
 oxoffice docx comment remove F --id ID -o OUT [--json]   # removes the comment and its replies
@@ -86,9 +89,11 @@ with the root. A reply id (move its root), a reply whose anchor is incomplete, a
 exits 1 and writes nothing. `comment list --json` gives each thread's `anchor_text` first.
 `P` and `Q` are **body indices** (`body_index` of `text --json`, counting tables); runs are zero-based run
 boundaries, half-open: `--start-run 1 --end-run 2` covers run 1. Runs are counted as `text --json` lists them,
-those inside an inline content control or a tracked insertion included. Without `--date` a comment is
-undated: always pass one (`2026-09-29T12:00:00Z`). Prefer `docx_ops.py comment`, which finds the text,
-splits runs, dates the comment and refuses a misplaced anchor. Comment ids stay stable across saves.
+those inside an inline content control or a tracked insertion included. Prefer `--anchor TEXT` (with
+`--occurrence N`, zero-based over the main story, and `--tables-only` to count table cells only): it splits the
+runs around the text and refuses, writing nothing, an anchor it would place elsewhere. A comment or a reply is
+dated now, in UTC, unless `--date 2026-09-29T12:00:00Z` names another time or `--undated` writes none. Comment
+ids stay stable across saves.
 
 ```bash
 oxoffice docx revision accept F -o OUT [--id ID] [--author NAME] [--start-date RFC3339] [--end-date RFC3339] [--json]
@@ -111,8 +116,17 @@ table cell or a content control, show as whole paragraphs deleted or inserted, m
 (deleted and reinserted), a reply or a resolved state adds one insertion: accepting gives EDITED's comments,
 rejecting ORIGINAL's. `--ignore-comments` keeps the original's comments, drops the edited file's, and
 compares the text only. A pair whose edited side had
-its TOC rebuilt compares, and the rebuilt TOC entries show as revisions next to the edit: check the exit code
-and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
+its TOC rebuilt compares, and the rebuilt TOC entries show as revisions next to the edit, with these exceptions:
+a heading that keeps one bookmark and gains or loses another (a `_Toc` one from a TOC rebuilt in one version only,
+a `_Ref` one from a cross-reference added in Word) exits 1 ("cannot revise paragraph boundary structures";
+limitation id docx-compare-bookmark-change);
+a paragraph that shows whole as deleted or inserted (added, removed, merged, split or moved) carries its
+simple fields in Word's complex form, but exits 1 for one inside a hyperlink or nested in another field
+(`oxoffice limitations docx --json`, id docx-compare-simple-field-paragraph). `toc rebuild` writes the page
+numbers as simple `PAGEREF` fields, so an entry added to or removed from a rebuilt TOC compares, as does a new
+paragraph with an `add_field` field. A block content control added or removed whole exits 1
+("cannot delete an unmatched content-control"), and Word's own TOC sits in one; a TOC of plain paragraphs, as
+Python's `insert_toc` writes it, compares added or removed whole. Check the exit code and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
 new one inserted; accepting gives the edited chart, rejecting the original. `--ignore-story KIND` (repeatable:
 `header`, `footer`, `comment`, `text_box`, `footnote`, `endnote`) keeps that story of ORIGINAL.
 ORIGINAL may already hold tracked changes, such as a first reviewer's redline: a paragraph, table or
@@ -188,8 +202,12 @@ Images from `convert`: one page goes to `OUT.png`, several to `OUT_001.png`, `OU
 multi-page file). `render` writes `NEW_DIR/<name>_page<N>.png` with N one-based; `--pages` is one-based,
 `--page` zero-based. `--font-dir DIR` (`convert` to PDF or images, `render`, `layout`) puts the fonts of a folder (`.ttf`, `.otf`, `.ttc`) before every other font, an embedded face included (a file also counts as the family its file name gives, `Aileron.ttf`), a variable font drawn at the weight a run asks for (a bold run without a bold face gets a synthetic bold); a missing folder is an error, and Markdown and HTML refuse the flag. Without it, oxoffice uses its bundled
 metric-compatible families (Liberation for Arial, Times New Roman, Courier New; Carlito for Calibri; Caladea
-for Cambria), also for a font it does not bundle, the same way in `convert`, `render`, `layout` and Python;
-`--system-fonts` (Python `system_fonts=True`) looks the system fonts up instead. Markdown and HTML hold the body, then text boxes,
+for Cambria), also for a font it does not bundle, the same way in `convert`, `render`, `layout` and Python.
+A character none of those fonts draws (most Chinese, Japanese and Korean text) takes a system font that has it,
+named in a diagnostic, or stays an empty box when the machine has none; `--bundled-fonts-only` (Python
+`bundled_fonts_only=True`) never takes a system font, for the same output on every machine.
+`--system-fonts` (Python `system_fonts=True`) looks the font families up in the system fonts first; the two
+flags exclude each other. Markdown and HTML hold the body, then text boxes,
 headers, footers, footnotes and endnotes, one section per part, a chart as a table of its cached data, and leave
 comments out.
 An input named `.md` / `.markdown` is read as Markdown (CommonMark with GitHub tables), one named `.html` /
