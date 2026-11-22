@@ -51,8 +51,8 @@ jobs:
           pixi-version: v0.84.2
           run-install: false
           cache: false
-      # The runner images that carry conda say where in CONDA (Linux and
-      # Windows today); the others skip that way with a warning. Only conda
+      # The runner images that carry conda say where in CONDA (Windows
+      # today); the others skip that way with a warning. Only conda
       # itself goes on PATH, not its base Python: condabin holds only conda
       # on Linux and macOS, Scripts holds conda.exe on Windows (condabin's
       # .bat files do not run from Git Bash).
