@@ -57,11 +57,13 @@ EXPECTED = {"uv", "pip in a virtual environment", "pixi", "conda", "The CLI alon
 
 
 def check(version, has_oxpy):
-    """Lines that fail unless `ox` (and `oxpy`) give `version`. Python on Windows ends a piped line with CR."""
-    lines = [f'ox --version | tr -d "\\r" | tee /dev/stderr | grep -qx "oxoffice {version}"']
+    """Lines that fail unless `ox` (and `oxpy`) give `version`. Python on Windows ends a piped line with CR, and
+    /dev/stderr does not exist there when the output is captured: each answer goes through a variable."""
+    strip = '| tr -d "\\r")"; echo "$v"'
+    lines = [f'v="$(ox --version {strip}', f'[ "$v" = "oxoffice {version}" ]']
     if has_oxpy:
-        lines.append("oxpy -c 'import oxoffice, oxoffice.docx, oxoffice.pptx; print(oxoffice.__version__)'"
-                     f' | tr -d "\\r" | tee /dev/stderr | grep -qx "{version}"')
+        code = "import oxoffice, oxoffice.docx, oxoffice.pptx; print(oxoffice.__version__)"
+        lines += [f"v=\"$(oxpy -c '{code}' {strip}", f'[ "$v" = "{version}" ]']
     return "\n".join(lines) + "\n"
 
 
