@@ -33,7 +33,7 @@ python-pptx or hand-written XML.
 - ✍️ **Safe edits**: counted find and replace across runs, text edited without losing its formatting, and the input
   never written over.
 - 🔍 **Real tracked changes**: list, accept and reject revisions, and build a redline of two versions.
-- 📌 **Stable, not frozen**: the skills are written and checked with oxoffice 0.2.0 and run any later release,
+- 📌 **Stable, not frozen**: the skills are written and checked with oxoffice 0.3.0 and run any later release,
   so a new oxoffice does not wait for a new plugin; CI runs every example against both, every night.
 - 🧪 **Examples that run**: every example of the skills runs on each push to oxoffice's `main`, against the build
   of that commit.
@@ -49,7 +49,7 @@ In Claude Code:
 /plugin install oxoffice@oxoffice-skills
 ```
 
-oxoffice is the one prerequisite, 0.2.0 or later (the skills are written and checked with 0.2.0). The skills use
+oxoffice is the one prerequisite, 0.3.0 or later (the skills are written and checked with 0.3.0). The skills use
 the `oxoffice` already installed, else get it through `uv`, `pip`, `pixi` or `conda`. Without any of them, they
 tell you how to install it from its [official instructions](https://github.com/oxoffice-dev/oxoffice#-install) and
 fall back to the built-in Word and PowerPoint skills meanwhile.

@@ -13,7 +13,8 @@ triple), `oxoffice.pptx.enum.shapes` (`MSO_SHAPE`, `MSO_SHAPE_TYPE`, `MSO_CONNEC
 `MSO_ARROWHEAD_STYLE`, `MSO_ARROWHEAD_WIDTH`, `MSO_ARROWHEAD_LENGTH`, `MSO_THEME_COLOR`, `MSO_COLOR_TYPE`,
 `MSO_PATTERN_TYPE`), `oxoffice.pptx.enum.lang` (`MSO_LANGUAGE_ID`), and at
 the top level the chart names (`oxoffice.pptx.XL_CHART_TYPE`, `oxoffice.pptx.CategoryChartData`, `oxoffice.pptx.XyChartData`). Errors:
-`oxoffice.pptx.PptxError`, `XmlError`, `PackageError`, `StaleElementError`, `ReplacementCountError`. The modules have no
+`oxoffice.pptx.PptxError`, `XmlError`, `PackageError`, `StaleElementError`, `ReplacementCountError`. `XmlError` is
+also a `ValueError` (`shape.name` refuses a character XML cannot carry; text setters store it as `_x0001_`). The modules have no
 docstrings: exact signatures are in `oxoffice/pptx/_native.pyi` in the installed package
 (`$O/python -c "import oxoffice.pptx, os; print(os.path.dirname(oxoffice.pptx.__file__))"` prints its folder).
 
@@ -66,7 +67,7 @@ Everything else (setters, `run.text`, appends: `add_slide`, `add_textbox`, `add_
 | `embedded_fonts` → tuple of `EmbeddedTypeface` (`typeface`, `panose`, `pitch_family`, `charset`, `faces`: `EmbeddedFontFace` with `kind`, `relationship_id`, `part_name`, `format` `"eot"`, `"compressed_eot"`, `"sfnt"` or `"unknown"`, `stored_len`, `data`: the font bytes, None when oxoffice cannot decode the face) | the fonts the deck embeds (`p:embeddedFontLst`) |
 | `embed_font(name, font, kind="regular", *, license)`, `remove_embedded_font(name, kind="regular")` → `EmbeddedFontFace` or None, `remove_font(name)` → `EmbeddedTypeface` or None | `font`: a path, bytes, binary reader or authored `EmbeddedFont` of one TrueType or OpenType face; `kind` `"regular"`, `"bold"`, `"italic"`, `"bold_italic"`; `license=oxoffice.pptx.FontEmbeddingLicense(authorized=True, identity="OFL-1.1: Example Sans")` is required, and `authorized=False` or an empty identity makes `embed_font` raise `ValueError` and change nothing. The writer emits uncompressed EOT, retaining the font's own `fsType`, and turns on `embed_true_type_fonts`. Native PowerPoint checks retain uncompressed EOT and use genuine regular and bold faces. Verify the delivered deck in its receiving application. Own deterministic renders draw supported enabled embedded faces; a `font_dir=` font of that typeface wins over it, within the caller tier, exact sfnt families win before file aliases. A MicroType Express face (`format` `"compressed_eot"`, `data` None), which PowerPoint writes, is not decoded: oxoffice draws a substitute, so pass the font file with `font_dir=`. Embed only a font whose licence allows it (SKILL.md, rule 7) |
 | `embed_true_type_fonts`, `save_subset_fonts` (get and set: True, False or None) | presence-sensitive `p:presentation` flags, None on a new deck until a font is embedded. Own rendering uses embedded faces only when `embed_true_type_fonts` is True. Verify font retention after resaving in the receiving application |
-| `to_odp()` → (bytes, diagnostics), `save_odp(path)` → diagnostics, `Presentation.from_odp(path or bytes)` → (presentation, diagnostics) | OpenDocument; diagnostics list what was dropped as (path, reason): read them, a placeholder that inherits its geometry is dropped |
+| `to_odp()` → (bytes, diagnostics), `save_odp(path)` → diagnostics, `Presentation.from_odp(path or bytes)` → (presentation, diagnostics) | OpenDocument; diagnostics list what was dropped as (path, reason): read them; a placeholder that inherits its geometry keeps its place and text but comes back from ODP as a plain text box (`shapes.title` is None) |
 
 ## Slide
 
