@@ -105,7 +105,7 @@ and `decoded_len` (null when undecoded). CLI format `compressed-eot` differs
 from Python `compressed_eot`. Unsupported embedded payloads are preserved,
 not decoded for rendering. Read the two flags with `font settings --json`.
 
-Own deterministic rendering uses supported enabled embedded faces before bundled
+oxoffice's own rendering uses supported enabled embedded faces before bundled
 fallback. Explicit caller `--font-dir` faces take precedence. Native PowerPoint
 checks retain uncompressed EOT and use genuine regular and bold faces. Verify
 font retention after resaving in the receiving application.
@@ -130,16 +130,19 @@ signature as valid. Sign last: any later edit, by oxoffice or by an application,
 ## Rendering
 
 ```bash
-oxoffice pptx convert F --to pdf -o NEW.pdf [--force] [--font-dir DIR]
+oxoffice pptx convert F --to pdf -o NEW.pdf [--force] [--font-dir DIR] [--bundled-fonts-only]
 oxoffice pptx convert F --to md|html -o NEW.md [--notes] [--skip-hidden] [--embed-images=false] [--force]
-oxoffice pptx convert F --to png|jpeg|tiff -o OUT.png [--slides 1,3-5] [--dpi 150] [--quality 90] [--transparent]
-oxoffice pptx render F -o NEW_DIR [--slide N] [--dpi 150] [--format png|jpeg|tiff] [--quality 90] [--transparent] [--force] [--font-dir DIR]
-oxoffice pptx thumbnail F -o NEW.png [--force] [--font-dir DIR]     # slide 1, 320 pixels wide
+oxoffice pptx convert F --to png|jpeg|tiff -o OUT.png [--slides 1,3-5] [--dpi 150] [--quality 90] [--transparent] [--bundled-fonts-only]
+oxoffice pptx render F -o NEW_DIR [--slide N] [--dpi 150] [--format png|jpeg|tiff] [--quality 90] [--transparent] [--force] [--font-dir DIR] [--bundled-fonts-only]
+oxoffice pptx thumbnail F -o NEW.png [--force] [--font-dir DIR] [--bundled-fonts-only]     # slide 1, 320 pixels wide
 ```
 `convert` to images writes `OUT.png` for one slide, `OUT_001.png`, `OUT_002.png`... for several; `render`
 writes `NEW_DIR/<name>_slide<N>.png`. `--quality` sets the JPEG quality (1 to 100), `--transparent` leaves unpainted PNG
 pixels transparent. `--font-dir DIR` adds the fonts of a folder (.ttf, .otf, .ttc) before the bundled ones, to
-every output; a missing folder is an error.
+every output; a missing folder is an error. What the deck's embedded fonts, `--font-dir` and the bundled fonts lack
+(most Chinese, Japanese and Korean text) is drawn with a system font that has it, named on stderr, or as empty
+boxes when the machine has none (`oxoffice limitations pptx --json`, id pptx-pdf-cjk); `--bundled-fonts-only`
+never takes a system font, for the same output on every machine.
 `--to md` writes CommonMark with GitHub tables, one section per slide headed by its title (an anchor before
 each), the rest in the order `outline` prints: paragraphs as list items nested by level with their bold, italic,
 strikethrough and external links, tables with the first row as header, pictures as images with their alt text.

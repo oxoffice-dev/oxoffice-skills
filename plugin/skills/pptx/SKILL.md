@@ -12,19 +12,19 @@ for every .pptx task. `oxoffice limitations pptx` lists what it cannot do yet; r
 
 ## Setup, once per session
 
-Needs **oxoffice** 0.3.0 or later (written and checked with 0.3.0): the one installed, else through a package
+Needs **oxoffice** 0.4.0 or later (written and checked with 0.4.0): the one installed, else through a package
 manager. Take the first way that works, keep it. Each defines two shell functions (bash, zsh): `ox`, the CLI, and
 `oxpy`, a Python with oxoffice. Shell state is lost between tool calls: define them first.
 
 1. **Already installed**: `oxoffice --version` and `python3 -c "import oxoffice; print(oxoffice.__version__)"`
-   both print 0.3.0 or later: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`. Older: leave it.
-2. **uv**: `ox() { uvx --python '>=3.10' --from 'oxoffice>=0.3.0' oxoffice "$@"; }`,
-   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with 'oxoffice>=0.3.0' python "$@"; }`.
+   both print 0.4.0 or later: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`. Older: leave it.
+2. **uv**: `ox() { uvx --python '>=3.10' --from 'oxoffice>=0.4.0' oxoffice "$@"; }`,
+   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with 'oxoffice>=0.4.0' python "$@"; }`.
 3. **pip in a virtual environment** of its own, made once (`Scripts` for `bin` on Windows):
 
    ```bash
    V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv"
-   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q 'oxoffice>=0.3.0'; }
+   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q 'oxoffice>=0.4.0'; }
    ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv/bin/oxoffice" "$@"; }
    oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv/bin/python" "$@"; }
    ```
@@ -104,7 +104,7 @@ Never alias `oxoffice.pptx` as `pptx` (python-pptx). Windows: `references/instal
 | Metadata | `oxoffice pptx meta get F`, `oxoffice pptx meta set F --title T --author A -o OUT` | `prs.core_properties.title = ...`, `prs.app_properties.company`, `prs.custom_properties.set(name, value)` | dates are `datetime` (a str raises); a new deck is stamped 2000-01-01 |
 | Comments | `oxoffice pptx comment list/add/reply/resolve/remove` | `prs.add_comment_author`, `slide.add_comment`, `reply_to_comment`, `resolve_comment`, `remove_comment`, `move_comment` | `shape_id=` anchors on a shape; add the author first |
 | Text fit | `oxoffice pptx fit [--json] F` | `prs.text_layout(width_factor=1.0)`, `prs.fit_report()`, `text_frame.fit_text(max_size=18)`, `text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE` then `prs.refresh_autofit()` | oxoffice's line breaks; `auto_size` alone writes no font scale and no new height: `refresh_autofit()` before the save |
-| PDF | `oxoffice pptx convert F --to pdf -o NEW.pdf [--font-dir DIR]` | `prs.to_pdf(font_dir=)`, `prs.to_notes_pdf()`, `to_pdfa()`, `to_handout_pdf(6)` | `font_dir` for fonts that are not installed |
+| PDF | `oxoffice pptx convert F --to pdf -o NEW.pdf [--font-dir DIR]` | `prs.to_pdf(font_dir=)`, `prs.to_notes_pdf()`, `to_pdfa()`, `to_handout_pdf(6)` | `font_dir` for fonts that are not installed; what no font of the deck draws (CJK) takes a system font: `--bundled-fonts-only` / `bundled_fonts_only=True` never does |
 | PNG | `oxoffice pptx render F -o NEW_DIR --slide N --dpi 100`, `oxoffice pptx convert F --to png --slides 1-3 -o NEW.png` | `prs.render_slide_to_png(i, dpi)`, `render_all_slides(dpi)`, `render_slides(format="jpeg")` | CLI slides one-based, Python zero-based; a slide's `show_master_shapes = False` hides the master's shapes, as in PowerPoint |
 | Markdown, HTML | `oxoffice pptx convert F --to md -o NEW.md [--notes] [--skip-hidden]`, `--to html` | `prs.to_markdown(include_notes=True, skip_hidden=True)`, `prs.to_html(...)` | one section per slide, in outline order; to read a deck, `oxoffice pptx text` is plainer |
 | Embedded fonts | `oxoffice pptx font list/embed/remove/settings` | `prs.embedded_fonts`, `prs.embed_font(typeface, "ExampleSans-Regular.ttf", "regular", license=oxoffice.pptx.FontEmbeddingLicense(...))`, `remove_embedded_font`, `remove_font` | rule 7; leave `embed_true_type_fonts` on; embed last (PowerPoint for Mac drops embedded fonts when it saves); a compressed embedded face is not rendered: pass its file with `font_dir` |
@@ -134,5 +134,5 @@ When oxoffice fails, refuses, loses data, renders wrong, or lacks an API you nee
 list it: reduce it to a **neutral reproduction**, a short script that builds its own input (python-pptx is fine)
 and prints the wrong result next to the expected one, never the user's deck, text, names or paths. Ask the user,
 then write it as `oxoffice-findings/YYYY-MM-DD-<slug>.md` in the working folder (what, expected, observed, the
-script, `ox --version`: a version after 0.3.0 may be the cause), or give it in the reply. Do not open issues
+script, `ox --version`: a version after 0.4.0 may be the cause), or give it in the reply. Do not open issues
 yourself.

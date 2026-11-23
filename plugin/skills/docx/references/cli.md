@@ -67,7 +67,7 @@ legacy form field names (`{"client": "Acme", "Status": "Final", "Signer": "Jane 
 control takes a string (`"true"` ticks a check box), a legacy text field a string, a legacy check box `true` /
 `false`, a legacy drop-down the index of its entry; `--json` lists each key's `target_kind` and `count`. A key that
 names no field or several, or a value of the wrong kind, exits 1 and writes nothing; a control takes its value as Word
-does: the placeholder flag goes, a date control gets `w:fullDate` and shows the date in its own format and language (limitation id docx-date-control-names), a drop-down takes one of its items (value or display
+does: the placeholder flag goes, a date control takes `2026-10-31`, or `2026-10-31T14:30` when its format shows a time, gets `w:fullDate` and shows the date in its own format and language (limitation id docx-date-control-names), a drop-down takes one of its items (value or display
 text). `meta set` writes the core properties it is given and custom
 properties (`--custom` repeatable, `TYPE` one of `str`, `int`, `float`, `bool`, `filetime`
 (`2026-10-31T00:00:00Z`), `empty`: `Client=str:Acme`, `Count=int:4`); `meta get --json` prints them all
@@ -115,18 +115,18 @@ words inside it folded in, in runs of whole words. Paragraphs merged, split, add
 table cell or a content control, show as whole paragraphs deleted or inserted, marks included. A comment added or removed on the edited side replaces the paragraph it anchors on
 (deleted and reinserted), a reply or a resolved state adds one insertion: accepting gives EDITED's comments,
 rejecting ORIGINAL's. `--ignore-comments` keeps the original's comments, drops the edited file's, and
-compares the text only. A pair whose edited side had
-its TOC rebuilt compares, and the rebuilt TOC entries show as revisions next to the edit, with these exceptions:
-a heading that keeps one bookmark and gains or loses another (a `_Toc` one from a TOC rebuilt in one version only,
-a `_Ref` one from a cross-reference added in Word) exits 1 ("cannot revise paragraph boundary structures";
-limitation id docx-compare-bookmark-change);
-a paragraph that shows whole as deleted or inserted (added, removed, merged, split or moved) carries its
-simple fields in Word's complex form, but exits 1 for one inside a hyperlink or nested in another field
-(`oxoffice limitations docx --json`, id docx-compare-simple-field-paragraph). `toc rebuild` writes the page
-numbers as simple `PAGEREF` fields, so an entry added to or removed from a rebuilt TOC compares, as does a new
-paragraph with an `add_field` field. A block content control added or removed whole exits 1
-("cannot delete an unmatched content-control"), and Word's own TOC sits in one; a TOC of plain paragraphs, as
-Python's `insert_toc` writes it, compares added or removed whole. Check the exit code and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
+compares the text only. A pair whose edited side had its TOC rebuilt compares, and the rebuilt TOC entries show as
+revisions next to the edit. A paragraph shown whole as deleted or inserted (added, removed, merged, split or moved)
+carries its simple fields, in a link or nested in another field too, in Word's complex form, and its links as
+`HYPERLINK` fields; footnotes and endnotes added, removed or moved show with their reference. A paragraph whose
+bookmarks differ (a heading that gains a `_Toc` bookmark from a TOC rebuilt in one version only, a `_Ref` one from a
+cross-reference added in Word) is deleted and inserted whole, a bookmark both files hold written once; it still
+exits 1 when such a bookmark starts or ends inside its text, sits in a link or a control, or the paragraph holds a
+complex field or a comment range both files hold (limitation id docx-compare-bookmark-change: compare before
+`toc rebuild`, then rebuild the TOC of the accepted result). A block content control added, removed or moved whole
+(Word's own TOC sits in one) shows its paragraphs and tables as revisions; oxoffice resolves it to either version,
+but in Word, Accept All or Reject All of a plain one (not a TOC) leaves an empty control (id
+docx-compare-block-control-in-word): resolve such a redline with `revision accept` / `reject`. Check the exit code and read the redline before presenting it. A chart whose data changed shows as the old chart deleted and the
 new one inserted; accepting gives the edited chart, rejecting the original. `--ignore-story KIND` (repeatable:
 `header`, `footer`, `comment`, `text_box`, `footnote`, `endnote`) keeps that story of ORIGINAL.
 ORIGINAL may already hold tracked changes, such as a first reviewer's redline: a paragraph, table or
@@ -144,9 +144,9 @@ number, so its title stays on the left when the TOC style has only the page-numb
 
 ```bash
 oxoffice docx font list F [--json]
-oxoffice docx font embed F --font FONT.ttf --name 'Example Sans' [--kind regular|bold|italic|bold-italic] --license-authorized \
+oxoffice docx font embed F --font FONT.ttf --name 'Example Sans' | --index N [--kind regular|bold|italic|bold-italic] --license-authorized \
       --license-identity 'OFL-1.1: Example Sans' [--font-key GUID] [--subsetted] -o OUT [--json]
-oxoffice docx font remove F --name 'Example Sans' [--kind bold] -o OUT [--json]
+oxoffice docx font remove F --name 'Example Sans' | --index N [--kind bold] -o OUT [--json]
 oxoffice docx font settings F [--json]
 oxoffice docx font settings F --embed-true-type-fonts true|false|none [--embed-system-fonts true|false|none] [--save-subset-fonts true|false|none] -o OUT [--json]
 ```
@@ -161,7 +161,8 @@ inputs and existing outputs refuse without changing the input or publishing a
 partial output.
 
 `font list --json` returns `schema: 1` and `fonts`, it does not include settings.
-Each record has `name`, `alternate_name`, `family`, `pitch` and `faces`.
+Each record has `index`, `name`, `alternate_name`, `family`, `pitch` and `faces`. A name several records carry
+(LibreOffice writes `Symbol` twice) is refused by `--name`; `--index N`, the record's `index`, addresses one of them.
 Each face has `kind`, `format` (`odttf`), `part_name`, `stored_len`,
 `decoded_len`, `font_key` and `subsetted`. Read the three flags separately
 with `font settings --json`.

@@ -10,7 +10,7 @@ the next one must still open what you save. What matters when you edit with oxof
 | `w:rsid*` on paragraphs, runs and rows, `w14:paraId` / `w14:textId`, a `w:rsids` list in settings | Word, on every save | carry no content; oxoffice keeps them, on table rows too |
 | explicit `w:val="0"` toggles (`w:b`, `w:i`, `w:rtl`, `keepNext`, `pageBreakBefore`), `xml:space="preserve"` on every `w:t`, `w:orient="portrait"` | Google Docs | equivalent to the defaults; a redline against an oxoffice-edited copy shows only the edit |
 | content controls `w:sdt` with `w:tag goog_rdk_N` around runs or paragraphs | Google Docs | read, replaced and commented on like the text around them (`Comment.anchor_text` reads through them, and a moved comment leaves no empty wrapper behind); a redline ignores a control that differs only by `w:id` or `w:tag` |
-| the table of contents in a `w:sdt` with `w:docPartObj` | Word, Google Docs | one body block: `find_content_indices(heading)` returns it too |
+| the table of contents in a `w:sdt` with `w:docPartObj` | Word, Google Docs | one body block: `find_content_indices(heading)` returns it too; a redline adds or removes it whole, and Word resolves it cleanly |
 | field instruction packed in one run (begin, instruction, separate), PAGE / NUMPAGES without a cached result | Google Docs | oxoffice reads and refreshes them, and a redline after refreshing them compares |
 | a default namespace on the root of each part | Google Docs | harmless for reading and most edits |
 | measurements with a floating-point tail (`w:gridCol w:w="2210.0000000000005"`, `w:ind w:hanging="226.99999999999977"`, `w:trHeight`, `w:pgMar`) | Google Docs | oxoffice reads each as the nearest integer |
@@ -20,7 +20,8 @@ the next one must still open what you save. What matters when you edit with oxof
 | several default styles of one type under different ids (`TableNormal` and `TableauNormal`, up to four paragraph defaults) | Google Docs | `rebuild_toc()` and `add_style()` accept them |
 | table of contents entries regenerated without their `TOC 1`, `TOC 2`... paragraph styles | Word, Google Docs, when they update the TOC | `rebuild_toc()` writes the entries back in the TOC styles |
 | pictures re-encoded, `pageBreakBefore` and `keepNext` rewritten, styles added | Google Docs, on every save | nothing shows to the eye; see the next section |
-| style ids in the interface language (`Titre1`, `Policepardfaut`) | Word in another language | assign styles by the id the file uses (`doc.styles`), never by an English name |
+| style ids in the interface language (`Titre1`, `Policepardfaut`) | Word in another language | assign styles by the id the file uses (`doc.styles`), never by an English name; links and note marks oxoffice adds take the file's own built-in styles (`Lienhypertexte`) |
+| two font records with one name (`Symbol` twice) | LibreOffice | the font calls by name refuse it: address one record by its index (`remove_font_at(i)`, `oxoffice docx font remove --index N`) |
 | `w:lineRule="auto"` spacing of 276 (Word) or 264 / 276 (Google) | both | oxoffice lays lines at Word's heights; still check page breaks in the target application when they matter |
 
 ## What a save in Google Docs does
