@@ -297,6 +297,7 @@ prs.save("links.pptx")
 ox pptx fit deck.pptx || [ $? -eq 1 ]            # exit 1: a frame overflows (or cannot be assessed)
 ox pptx render deck.pptx -o slide-5 --slide 5 --dpi 80   # a new folder: render refuses a slide that exists
 ox pptx convert deck.pptx --to pdf -o deck.pdf   # a new path: convert refuses an existing output without --force
+ox pptx thumbnail deck.pptx -o thumb.png --bundled-fonts-only   # no system font: the same pixels on every machine
 ox pptx validate deck.pptx
 ```
 

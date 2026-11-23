@@ -142,6 +142,11 @@ assert findings[:2] == ["Findings", "Inserted after the heading."]
 with zipfile.ZipFile(d / "chart.docx") as z:
     chart = re.findall(r"<c:v>([^<]*)</c:v>", z.read("word/charts/chart1.xml").decode())
 assert chart == ["Inspections", "2024", "2025", "2026", "12", "15", "9"]
+restarted = oxoffice.docx.Document.open(d / "restarted.docx").paragraphs
+assert [q.text for q in restarted] == ["Scope", "Findings", "Annex A", "Annex B"]
+assert restarted[0].numbering is None and restarted[2].numbering == restarted[3].numbering is not None
+with zipfile.ZipFile(d / "restarted.docx") as z:
+    assert b"w:startOverride" in z.read("word/numbering.xml")
 for name in ("embedded.docx", "embedded-py.docx"):
     font = next(f for f in oxoffice.docx.Document.open(d / name).fonts if f.name == "Aileron")
     assert [(e.kind, e.license.identity) for e in font.embedded_fonts] == [("regular", "CC0-1.0: Aileron")]
@@ -167,6 +172,7 @@ with zipfile.ZipFile(p / "c3.pptx") as z:
     thread = b"".join(z.read(n) for n in z.namelist() if n.startswith("ppt/comments/"))
 assert b"Source for the costs?" in thread and b"Framework rates, 2025." in thread and b'status="resolved"' in thread
 assert (p / "deck.pdf").read_bytes()[:5] == b"%PDF-"
+assert (p / "thumb.png").read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
 slides = json.loads((p / "deck.json").read_text())["slides"]
 assert len(slides) == 7 and any("Three options" in json.dumps(s) for s in slides)
 assert [f.name for f in (p / "slide-5").iterdir()] == ["deck_slide5.png"]

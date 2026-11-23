@@ -12,19 +12,19 @@ for anything finer. Use them for every .docx task. Names follow python-docx wher
 
 ## Setup, once per session
 
-Needs **oxoffice** 0.3.0 or later (written and checked with 0.3.0): the one installed, else through a package
+Needs **oxoffice** 0.4.0 or later (written and checked with 0.4.0): the one installed, else through a package
 manager. Take the first way that works, keep it. Each defines two shell functions (bash, zsh): `ox`, the CLI, and
 `oxpy`, a Python with oxoffice. Shell state is lost between tool calls: define them first.
 
 1. **Already installed**: `oxoffice --version` and `python3 -c "import oxoffice; print(oxoffice.__version__)"`
-   both print 0.3.0 or later: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`. Older: leave it.
-2. **uv**: `ox() { uvx --python '>=3.10' --from 'oxoffice>=0.3.0' oxoffice "$@"; }`,
-   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with 'oxoffice>=0.3.0' python "$@"; }`.
+   both print 0.4.0 or later: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`. Older: leave it.
+2. **uv**: `ox() { uvx --python '>=3.10' --from 'oxoffice>=0.4.0' oxoffice "$@"; }`,
+   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with 'oxoffice>=0.4.0' python "$@"; }`.
 3. **pip in a virtual environment** of its own, made once (`Scripts` for `bin` on Windows):
 
    ```bash
    V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv"
-   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q 'oxoffice>=0.3.0'; }
+   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q 'oxoffice>=0.4.0'; }
    ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv/bin/oxoffice" "$@"; }
    oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv/bin/python" "$@"; }
    ```
@@ -91,7 +91,7 @@ Never alias `oxoffice.docx` as `docx` (python-docx). Windows: `references/instal
 | Replacement in one paragraph, cell or story item | | `p.replace_text(old, new, expect=1)`, `cell.replace_text(...)`, `doc.replace_text_at(item, ...)` | a wrong count raises, nothing changed |
 | Regex replacement | `oxoffice docx replace F --regex -p PATTERN -v '$1' --expect N -o OUT` | `doc.replace_all_regex_expected([(pattern, repl, n)])` | `$1` groups; a wrong count raises |
 | Paragraph after an anchor, same format | | `doc.clone_content(p, bi + 1)`, then set run texts | not comment anchors |
-| New paragraphs, headings, lists | | `doc.add_heading(text, 1)`, `add_paragraph(text, style="Quote")`, `add_bullet_list_item(text)`, `add_numbered_list_item(text)`, `insert_paragraph(bi, text)` | a list restart: a new `add_numbering_instance` |
+| New paragraphs, headings, lists | | `doc.add_heading(text, 1)`, `add_paragraph(text, style="Quote")`, `add_bullet_list_item(text)`, `add_numbered_list_item(text)`, `insert_paragraph(bi, text)` | a list restart: `doc.restart_numbering(p, start=1)` |
 | Delete, move a block | | `remove_content(bi)`, `remove_content_range(start, end)`, `pop_content(bi)` + `insert_content(bi, frag)`, `move_content(source, destination)` | cutting a comment in part raises: move the thread first |
 | Rewrite a paragraph's text | | `doc.paragraphs[i].text = text`, `set_story_text(item, text)` | the setter leaves one plain run; `set_story_text` keeps the first run's format |
 | Format part of a run | | `span = p.find_text(text)` (None if absent: run text only), `first, last = doc.isolate_span(span)`, then `runs[k].font.bold = True` | re-fetch the paragraph |
@@ -106,15 +106,15 @@ Never alias `oxoffice.docx` as `docx` (python-docx). Windows: `references/instal
 | Comments, replies, resolution | `oxoffice docx comment add F --anchor TEXT --text T --author A -o OUT`, `comment list/reply/resolve/remove` | `doc.add_comment_on_text(anchor, author=, text=, occurrence=0)`, `reply_to`, `resolve_comment`, `remove_comment` | dated now unless `--date`/`date=` or `--undated` |
 | What each comment points at, moving a thread | `oxoffice docx comment list --json F` (`anchor_text`, `anchor`), `comment move F ID --text TEXT -o OUT` | `c.anchor_text`, `c.anchor` for `c in doc.comments`; `doc.move_comment_to_text(id, text)`, `move_comment(id, range)` | move a thread off a paragraph before deleting it |
 | Tracked changes | `oxoffice docx revision list/accept/reject --id/--author/--start-date/--end-date` | `doc.revisions`, `accept_all()`, `reject_all()`, by id, author or dates | every story: `r.story.kind` |
-| Redline of two versions | `oxoffice docx compare A B --author N --timestamp T --granularity word [--ignore-comments] -o OUT` | `a.compare(b, author, timestamp, granularity="word", ignore_comments=True)` | default: whole runs; a picture or chart shows as revisions; compare before `toc rebuild`: a heading that keeps a bookmark and gains a `_Toc` one is refused |
+| Redline of two versions | `oxoffice docx compare A B --author N --timestamp T --granularity word [--ignore-comments] -o OUT` | `a.compare(b, author, timestamp, granularity="word", ignore_comments=True)` | default: whole runs; a picture or chart shows as revisions; compare before `toc rebuild` |
 | Table of contents | `oxoffice docx toc rebuild F -o OUT` | `doc.rebuild_toc()`; a new one: `insert_toc(bi, max_level=3)`, then `rebuild_toc()` | `insert_toc` may come before the headings |
 | Fields | `oxoffice docx fields update F -o OUT [--now 2026-10-10T09:00:00]` | `doc.update_fields()`, `update_page_fields()` | header and footer page numbers keep their cached text |
 | PDF | `oxoffice docx convert F --to pdf [--revision-view tracked [--revision-style legal]] -o NEW.pdf` | `doc.to_pdf(revision_view="tracked", revision_style="legal")` | accepted view by default; `tracked` shows the revisions, `legal` in colour |
 | PNG pages | `oxoffice docx render F -o NEW_DIR --pages 1-3 --dpi 100 [--font-dir DIR]` | `doc.render_pages(dpi=, pages=[0, 1], font_dir=)` | CLI pages one-based, Python zero-based; `font_dir`: fonts not installed |
-| Markdown, HTML, ODT, RTF, EPUB | `oxoffice docx convert F --to md -o NEW.md` / `--to html` | `doc.text()`, `to_markdown()`, `to_html()`, `to_odt()`, `to_rtf()`, `to_epub()` | no comments; ODT, RTF, EPUB: `bytes` and the `diagnostics` of what they dropped |
+| Markdown, HTML, ODT, RTF, EPUB | `oxoffice docx convert F --to md -o NEW.md` / `--to html` | `doc.text()`, `to_markdown()`, `to_html()`, `to_odt()`, `to_rtf()`, `to_epub()` | no comments; ODT, RTF (both keep equations), EPUB: `bytes` and the `diagnostics` of what they dropped |
 | New document from Markdown or HTML | `oxoffice docx convert notes.md -o NEW.docx [--template brand.dotx]` (or `page.html`) | `Document.from_markdown(text, template=, images=)`, `Document.from_html(html)`, `doc.insert_html(html, after=p)` | each returns what it dropped: read it |
 | Charts | | `doc.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, data, w, h, after=p)`, `set_chart_legend(p, visible=True, position="b")` | data as in python-pptx (`CategoryChartData`); `doc.charts` reads them back |
-| Embedded fonts | `oxoffice docx font list/embed/remove/settings` | `doc.fonts`, `embed_font(name, file, "regular", license=...)`, `remove_embedded_font(name, kind)` | rule 10 |
+| Embedded fonts | `oxoffice docx font list/embed/remove/settings` | `doc.fonts`, `embed_font(name, file, "regular", license=...)`, `remove_embedded_font(name, kind)`; a name two records share: `--index N`, `remove_font_at(i)` | rule 10 |
 | Validity | `oxoffice docx validate F` | `doc.validate()` | XML 1.0, a schema subset, references, style ids (rule 7) |
 | Sign, check signatures | `oxoffice docx sign F --key K.pem --cert C.pem -o OUT`, `verify-signatures --json F` | `doc.sign(key, cert)`, `verify_signatures()` | sign last: an edit breaks it; no chain trust |
 | What changed between two files | `oxoffice docx diff A B` | | by paragraph, in every story |
@@ -142,5 +142,5 @@ When oxoffice fails, refuses, loses data, renders wrong, or lacks an API you nee
 list it: reduce it to a **neutral reproduction**, a short script that builds its own input (python-docx is fine)
 and prints the wrong result next to the expected one, never the user's document, text, names or paths. Ask the
 user, then write it as `oxoffice-findings/YYYY-MM-DD-<slug>.md` in the working folder (what, expected, observed,
-the script, `ox --version`: a version after 0.3.0 may be the cause), or give it in the reply. Do not open issues
+the script, `ox --version`: a version after 0.4.0 may be the cause), or give it in the reply. Do not open issues
 yourself.

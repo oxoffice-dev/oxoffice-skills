@@ -178,7 +178,19 @@ assert p.numbering is None and p.text == "Scope"           # the page shows "1. 
 
 `Paragraph.numbering` and the text views show only a paragraph's own numbering: a heading numbered by its
 style reads unnumbered. Read the render before calling a numbering a defect; typing a number into its text
-doubles it.
+doubles it. To count again from 1 at one item, restart it: the items after it follow, whether they are numbered by
+their style or directly.
+
+```python
+import oxoffice.docx
+doc = oxoffice.docx.Document.open("style-numbered.docx")
+for title in ("Findings", "Annex A", "Annex B"):
+    doc.add_paragraph(title)
+    doc.paragraphs[-1].style = "Heading 1"                  # 2. Findings, 3. Annex A, 4. Annex B
+annex = doc.restart_numbering(doc.paragraphs[2], start=1)  # 1. Annex A, 2. Annex B
+assert [p.numbering for p in doc.paragraphs] == [None, None, (annex, 0), (annex, 0)]
+doc.save("restarted.docx")
+```
 
 ## A new list item, and the lead-in kept with its list
 
@@ -309,12 +321,12 @@ The redline holds only the edit, in every story (`revision list` shows each revi
 run). In Python: `v1.compare(v2, "Reviewer", timestamp, granularity="word")`. Compare before rebuilding the
 TOC: a TOC rebuilt on the edited side shows its changed entries as revisions. Word renames the `_Toc` heading
 bookmarks and renumbers bookmark ids when it rebuilds or saves; `compare` gives the edited side the original's ids
-and names first, so two such versions compare as they are. `rebuild_toc` writes a TOC's page
-numbers as simple `PAGEREF` fields; a paragraph shown whole as deleted or inserted carries them in Word's complex
-form, except one inside a hyperlink or nested in another field (`oxoffice limitations docx --json`, id
-docx-compare-simple-field-paragraph). An entry added to or removed from a rebuilt TOC compares, and so
-does a new paragraph with an `add_field` field. But a heading that keeps one bookmark and gains a `_Toc` one from a TOC rebuilt on one side only is refused too (id docx-compare-bookmark-change): compare first, then rebuild the TOC of the accepted result. A block content control
-added or removed whole is refused, Word's own TOC included; a TOC of plain paragraphs (`insert_toc`) compares.
+and names first, so two such versions compare as they are. A heading that gains a `_Toc` bookmark from a TOC
+rebuilt on one side only is replaced whole, its kept bookmark written once; a bookmark both versions hold that
+starts or ends inside a paragraph's text is still refused (`oxoffice limitations docx --json`, id
+docx-compare-bookmark-change): compare first, then rebuild the TOC of the accepted result. A block content control
+added or removed whole, Word's own TOC included, shows as revisions of what it holds; in Word, resolving a plain one
+(not a TOC) leaves an empty control (id docx-compare-block-control-in-word), so accept or reject it with oxoffice.
 
 ```python
 import oxoffice.docx
@@ -606,7 +618,9 @@ font = next(f for f in oxoffice.docx.Document.open("embedded-py.docx").fonts if 
 print([(e.kind, len(e.data)) for e in font.embedded_fonts])
 ```
 
-Use Python kind `bold_italic` and CLI `--kind bold-italic` for the fourth face.
+Use Python kind `bold_italic` and CLI `--kind bold-italic` for the fourth face. A name several records carry
+(LibreOffice writes `Symbol` twice) is refused by the name calls: `--index N` (each record's `index` in
+`font list --json`) and `remove_font_at(i)`, `embed_font_at(i, ...)`, `set_font_at(i, font)` address one record.
 Embed each physical face separately with the same explicit licence assertion.
 The assertion records caller permission, it does not derive permission from the font file.
 Check the exact source licence before reusing the Aileron example identity.
