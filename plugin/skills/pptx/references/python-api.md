@@ -13,7 +13,8 @@ triple), `oxoffice.pptx.enum.shapes` (`MSO_SHAPE`, `MSO_SHAPE_TYPE`, `MSO_CONNEC
 `MSO_ARROWHEAD_STYLE`, `MSO_ARROWHEAD_WIDTH`, `MSO_ARROWHEAD_LENGTH`, `MSO_THEME_COLOR`, `MSO_COLOR_TYPE`,
 `MSO_PATTERN_TYPE`), `oxoffice.pptx.enum.lang` (`MSO_LANGUAGE_ID`), and at
 the top level the chart names (`oxoffice.pptx.XL_CHART_TYPE`, `oxoffice.pptx.CategoryChartData`, `oxoffice.pptx.XyChartData`). Errors:
-`oxoffice.pptx.PptxError`, `XmlError`, `PackageError`, `StaleElementError`, `ReplacementCountError`. The modules have no
+`oxoffice.pptx.PptxError`, `XmlError`, `PackageError`, `StaleElementError`, `ReplacementCountError`. `XmlError` is
+also a `ValueError`. The modules have no
 docstrings: exact signatures are in `oxoffice/pptx/_native.pyi` in the installed package
 (`$O/python -c "import oxoffice.pptx, os; print(os.path.dirname(oxoffice.pptx.__file__))"` prints its folder).
 

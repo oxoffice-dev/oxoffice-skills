@@ -16,7 +16,7 @@ Public repository: nothing specific to a company, a project or a person goes in 
 
 ## Rules
 
-1. The skills are written and checked with one oxoffice release, the floor their Setup names (`oxoffice>=0.2.0`),
+1. The skills are written and checked with one oxoffice release, the floor their Setup names (`oxoffice>=0.3.0`),
    and take any later one: a new oxoffice release needs no new plugin while its API stays stable. CI runs the
    examples against the floor and the latest release. Raise the floor only when the skills start citing something
    an older release lacks: that changes every place that names it (`grep -rn '0\.2\.0' plugin README.md
