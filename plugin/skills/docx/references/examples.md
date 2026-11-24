@@ -552,6 +552,35 @@ One `fill_form` call takes every value, checked together: an unknown target or a
 raises and changes nothing. It does not check `required`; `validate_form` does, and `protect_form` refuses a form
 that does not pass it. `reset_form(rules)` writes each rule's reset value back.
 
+## Citations and a bibliography
+
+```python
+import oxoffice.docx
+from oxoffice.docx import BibliographyContributor, BibliographyPerson, BibliographySource, CitationSource
+doc = oxoffice.docx.Document.open("report.docx")
+doc.add_bibliography_source(BibliographySource(
+    "Curie1903", "book",
+    contributors=[BibliographyContributor("author", people=[BibliographyPerson("Curie", "Marie")])],
+    fields=[("title", "Radioactive Substances"), ("year", "1903"), ("city", "Paris"), ("publisher", "Gauthier-Villars")],
+))
+doc.insert_citation_after_text("The overall condition index", [CitationSource("Curie1903", pages="12")])
+heading = doc.add_heading("References", 1)
+doc.insert_bibliography(doc.find_content_index(heading) + 1, "apa6")
+report = doc.update_bibliography(default_locale=1033)    # en-US for fields naming no locale: (Curie, 1903, p. 12)
+assert report.updated_citations == 1 and report.rebuilt_bibliographies == 1, report.diagnostics
+doc.save("cited.docx")
+```
+
+```bash
+ox docx bibliography sources --json cited.docx            # the sources, each whole: the JSON add-source takes
+ox docx bibliography cite cited.docx --after "three points lower" --source 'Curie1903,pages=20' -o cited-twice.docx
+ox docx bibliography update cited-twice.docx --default-locale 1033 -o cited-updated.docx --json
+```
+
+A field that names no locale needs `default_locale` (`--default-locale`), else the update refuses. A citation or
+bibliography `update` does not cover yet (beyond APA 6th, only a one-author book is) fails the whole update and
+changes nothing: insert the fields, save, and leave the results to Word.
+
 ## A document from Markdown or HTML
 
 ```bash

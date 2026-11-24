@@ -185,20 +185,47 @@ already signed and one with external relationships. `verify-signatures` prints `
 `partial`, `unsigned`) and `signatures` (`signer` with `subject`, `issuer`, `serial_number`;
 `cryptographically_valid`, `coverage_complete`, `covered_parts`, `issues` with `kind` such as `changed_reference`);
 exit 0 only when at least one signature is valid and complete and none is invalid or partial, 1 otherwise (an
-unsigned file included). Certificate trust (the chain, revocation) is not checked: say so when you report a
+unsigned file included). It checks the file as it is on disk, as opened, without writing it back first. Certificate trust (the chain, revocation) is not checked: say so when you report a
 signature as valid. Sign last: any later edit, by oxoffice or by an application, invalidates it. In Python:
 `doc.sign(key_bytes, cert_bytes)` then `save`, `doc.verify_signatures()` (`references/python-api.md`).
+
+## Bibliography
+
+```bash
+oxoffice docx bibliography sources [--json] F            # tag, kind, GUID, title; --json: each source whole
+oxoffice docx bibliography add-source F --source SRC.json -o OUT [--json]       # prints the GUIDs
+oxoffice docx bibliography replace-source F --source SRC.json -o OUT [--json]   # by tag, keeps the GUID
+oxoffice docx bibliography remove-source F TAG -o OUT [--json]                  # a source no citation names
+oxoffice docx bibliography style [--json] F
+oxoffice docx bibliography set-style F --style apa6 [--locale 1033] [--locale-filter N] [--tag TAG]... -o OUT [--json]
+oxoffice docx bibliography cite F --after TEXT [--occurrence N] --source 'TAG[,pages=P][,volume=V][,prefix=F][,suffix=S][,no-author][,no-year][,no-title]'... [--locale N] -o OUT [--json]
+oxoffice docx bibliography cite F --paragraph BODY_INDEX --run RUN --sources CITE.json -o OUT
+oxoffice docx bibliography insert F --index BODY_INDEX --style apa6 [--locale N] -o OUT [--json]   # the item count: at the end
+oxoffice docx bibliography update F --default-locale 1033 -o OUT [--json]       # rebuilds every citation and bibliography
+```
+A source JSON is the `source` object `sources --json` prints, or an array of them: `tag`, `kind`
+(`book`, `journal_article`, `internet_site`, ... 17 kinds), `guid` (empty: derived from the content), `locale`,
+`contributors` (`[{"role": "author", "people": [{"last": "Curie", "first": "Marie"}]}]`, or `"corporate": "NASA"`),
+`fields` (`[["title", "..."], ["year", "1903"], ["city", "Paris"], ["publisher", "..."]]`); an unknown key is
+refused. Styles: `apa6`, `chicago`, `gb7714`, `gost-name`, `gost-title`, `harvard-anglia`, `ieee`,
+`iso690-author-date`, `iso690-numeric`, `mla7`, `sist02`, `turabian`. Locales are Windows LCIDs (1033 en-US).
+A tag holding a comma is refused by `--source` (use `--sources CITE.json`). `insert` and `cite` write the fields;
+`update` writes their results, in `--default-locale` for a field or source that names no locale (without it, such a field is refused). It covers every source kind in APA 6th and a one-author book in the 11 other
+styles; anything else fails the whole update, naming the style, kind and locale, and nothing is written: then
+leave the fields to Word (Update Field). Only APA 6th in en-US is checked against Word.
 
 ## Rendering and conversion
 
 ```bash
 oxoffice docx convert F --to pdf -o NEW.pdf [--font-dir DIR] [--revision-view accepted|tracked] [--revision-style plain|legal] [--force]
+oxoffice docx convert form.docx --to pdf --fillable-forms -o FORM.pdf
 oxoffice docx convert F --to png|jpeg|tiff -o OUT.png [--dpi 150] [--pages 1,3-5] [--quality 90] [--transparent] [--revision-view tracked] [--revision-style legal] [--font-dir DIR]
 oxoffice docx convert F --to md|html -o NEW.md
 oxoffice docx convert notes.md|page.html [--to docx] [--template brand.dotx] -o NEW.docx
 oxoffice docx render F -o NEW_DIR [--dpi 150] [--pages 1,3-5 | --page 0] [--format png|jpeg|tiff] [--quality 90] [--transparent] [--revision-view tracked] [--revision-style legal] [--font-dir DIR] [--force]
 oxoffice docx layout --json F [--font-dir DIR]
 ```
+`--fillable-forms` (Python `to_pdf(fillable_forms=True)`, PDF and the accepted view only) turns content controls and legacy form fields into PDF form fields with their values: in the body, tables, notes, headers and footers (one field, a widget on each page), floating text boxes, and empty controls too; a control left static says why on stderr (Python: `to_pdf_with_diagnostics`), and so does a field whose text the typing font (Liberation Sans) cannot type (Chinese, Arabic...).
 Images from `convert`: one page goes to `OUT.png`, several to `OUT_001.png`, `OUT_002.png`... (tiff: one
 multi-page file). `render` writes `NEW_DIR/<name>_page<N>.png` with N one-based; `--pages` is one-based,
 `--page` zero-based. `--font-dir DIR` (`convert` to PDF or images, `render`, `layout`) puts the fonts of a folder (`.ttf`, `.otf`, `.ttc`) before every other font, an embedded face included (a file also counts as the family its file name gives, `Aileron.ttf`), a variable font drawn at the weight a run asks for (a bold run without a bold face gets a synthetic bold); a missing folder is an error, and Markdown and HTML refuse the flag. Without it, oxoffice uses its bundled
