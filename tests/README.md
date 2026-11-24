@@ -18,7 +18,7 @@ Locally, in a new virtual environment (about 20 seconds for the examples, a few 
 
 ```bash
 pip install --require-hashes -r tests/requirements.txt
-pip install oxoffice==0.4.0            # the floor (or oxoffice, the latest), in a second call: the first checks hashes
+pip install oxoffice==0.5.0            # the floor (or oxoffice, the latest), in a second call: the first checks hashes
 python tests/make_fixtures.py /tmp/skills/fixtures
 python tests/run_examples.py --jobs 4 --skills plugin/skills --fixtures /tmp/skills/fixtures --work /tmp/skills
 python tests/check_outputs.py /tmp/skills
