@@ -222,7 +222,7 @@ leave the fields to Word (Update Field). Only APA 6th in en-US is checked agains
 oxoffice docx convert F --to pdf -o NEW.pdf [--font-dir DIR] [--revision-view accepted|tracked] [--revision-style plain|legal] [--force]
 oxoffice docx convert form.docx --to pdf --fillable-forms -o FORM.pdf
 oxoffice docx convert F --to png|jpeg|tiff -o OUT.png [--dpi 150] [--pages 1,3-5] [--quality 90] [--transparent] [--revision-view tracked] [--revision-style legal] [--font-dir DIR]
-oxoffice docx convert F --to md|html -o NEW.md
+oxoffice docx convert F --to md|html -o NEW.md                                     # convert and render take --json (see JSON above)
 oxoffice docx convert notes.md|page.html [--to docx] [--template brand.dotx] -o NEW.docx
 oxoffice docx render F -o NEW_DIR [--dpi 150] [--pages 1,3-5 | --page 0] [--format png|jpeg|tiff] [--quality 90] [--transparent] [--revision-view tracked] [--revision-style legal] [--font-dir DIR] [--force]
 oxoffice docx layout --json F [--font-dir DIR]
