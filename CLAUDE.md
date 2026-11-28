@@ -19,9 +19,9 @@ Public repository: nothing specific to a company, a project or a person goes in 
 1. The skills are written and checked with one oxoffice release, the floor their Setup names (`oxoffice>=0.9.0`),
    and take any later one: a new oxoffice release needs no new plugin while its API stays stable. CI runs the
    examples against the floor and the latest release. Raise the floor only when the skills start citing something
-   an older release lacks: that changes every place that names it (`grep -rn '0\.5\.0' plugin README.md
-   PRIVACY.md`) and means checking every command, flag and Python name the skills cite, then publishing per
-   `RELEASE.md`. They hold no script: what an agent needs belongs in oxoffice (its `specs/2026-11-20-skill-helpers-in-the-library.md`).
+   an older release lacks: that changes every place that names it (`grep -rn '0\.9\.0' plugin README.md
+   PRIVACY.md CLAUDE.md tests/README.md`, the current floor) and means checking every command, flag and Python
+   name the skills cite, then publishing per `RELEASE.md`. They hold no script: what an agent needs belongs in oxoffice (its `specs/2026-11-20-skill-helpers-in-the-library.md`).
 2. No build here. The examples are the contract with oxoffice: this repository's CI runs every block of every
    `examples.md` against the floor and the latest release, checks that every name the skills cite exists, and
    installs oxoffice by every way `install.md` documents on Linux, macOS and Windows (conda where the runner has it), on

@@ -14,8 +14,8 @@ Ranges: `B3`, `A1:C10`, `A:C` (whole columns, clipped to the used range), `2:5`.
 
 Every writing command saves the extension it is given as the workbook class (`.xlsx`, `.xlsm`, `.xltx`, `.xltm`)
 and does not check it against the input: write `.xlsx` for a `.xlsx` input. `--json` prints what was done
-(`operation`, `output`, `sheet`, `cell` or `edits`, `schema`). `--drop-cached-values` goes with every command that
-writes: it empties the cached value of every formula so that LibreOffice computes them on open (Excel and Google
+(`operation`, `output`, `sheet`, `cell` or `edits`, `schema`). `--drop-cached-values` goes with `set`, `edit` and
+`import-csv` (not `new`): it empties the cached value of every formula so that LibreOffice computes them on open (Excel and Google
 Sheets calculate an edited workbook anyway; a function LibreOffice lacks, such as `LAMBDA`, then shows an error).
 
 ## Reading
@@ -23,7 +23,7 @@ Sheets calculate an edited workbook anyway; a function LibreOffice lacks, such a
 | Command | Output |
 |---|---|
 | `oxoffice xlsx inspect [--json] F` | the file, its class, date system, whether a recalculation is asked, and each sheet: position, name, kind (`worksheet`, `chartsheet`, `dialogsheet`, `macrosheet`), state (hidden ones listed), used range. `--json` adds each sheet's page setup (margins, paper, orientation, scale, header and footer, breaks, print area and titles) |
-| `oxoffice xlsx text [--sheet S]... F` | per sheet `# NAME` then its rows, tab-separated, the texts Excel displays (empty rows left out: no addresses; use `--markdown` or `cells` when addresses matter) |
+| `oxoffice xlsx text [--sheet S]... F` | the cached values (rule 2 of SKILL.md: `inspect F` says whether they may be stale); per sheet `# NAME` then its rows, tab-separated, the texts Excel displays (empty rows left out: no addresses; use `--markdown` or `cells` when addresses matter) |
 | `oxoffice xlsx text --markdown [--sheet S]... F` | `## NAME` and one table per sheet, headed by the column letters, each row led by its number: every value keeps its address. `\|` is escaped, line breaks are `<br>`, chart and dialog sheets are headed without a table |
 | `oxoffice xlsx text --json [--sheet S]... F` | `{"date1904", "recalculation_needed", "schema", "sheets": [{"sheet" (from 1), "name", "kind", "state", "used_range", "merged", "comments", "cells": [{"ref", "text", "type" (`text`, `number`, `boolean`, `error`), "value" (a number, a date as its serial), "formula" and `"stale"` when it is a formula}]}]}`; only cells that hold something |
 | `oxoffice xlsx csv [--sheet S] [--raw] [--delimiter C\|tab] [--bom] [-o OUT] F` | one sheet from A1 to the end of its used range: CRLF line ends, RFC 4180 quoting; the displayed texts, or `--raw` the stored values (shortest number, dates as serials, `TRUE` / `FALSE`, error codes) |
@@ -52,7 +52,8 @@ extension makes a template or a macro-enabled workbook.
 cell (Google Sheets shows its first value alone); `--spill-range J2:J5` names the range from the cell, other cells
 empty, which Google Sheets spills too. A value that starts with `-` and is not a number goes last, after `--`
 (`set F A1 --formula -o OUT -- -A1*2`). A formula Excel would repair (`=1+`, a `;` separator) is refused with the
-reason.
+reason; the check is syntax and argument counts, not function or sheet names (`SUM(Nope!B2)` is written), and a
+sheet name with a space is quoted: `'Q1 notes'!B2`.
 
 `import-csv` writes the rectangle the CSV covers from `--at`, an empty field clearing its cell. UTF-8, a byte order
 mark skipped. Fields are typed strictly (number, boolean, date, else text; a leading `=` stays text: a CSV holds no

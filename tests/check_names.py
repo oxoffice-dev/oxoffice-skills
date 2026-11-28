@@ -24,7 +24,7 @@ SKILLS = Path(sys.argv[1]).resolve()
 OX = shutil.which("oxoffice")
 DOCS = sorted(SKILLS.glob("*/SKILL.md")) + sorted(SKILLS.glob("*/references/*.md"))
 # python-pptx, python-docx, lxml and standard library names the skills cite on purpose
-FOREIGN = {"Presentation", "Document", "fromstring", "tostring", "xpath", "related_part", "ZipFile", "unpack"}
+FOREIGN = {"Presentation", "Document", "fromstring", "tostring", "xpath", "related_part", "ZipFile", "unpack", "Path"}
 # worksheet functions the xlsx skill writes in formulas
 FOREIGN |= {"IF", "SUM", "SORT", "XLOOKUP", "VLOOKUP", "DATE", "LET", "LAMBDA"}
 stats = {"spans": 0, "calls": 0, "keywords": 0, "cli_spans": 0, "flags": 0}

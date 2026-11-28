@@ -4,6 +4,10 @@ notes, a merged title, widths and a frozen header row.
 
 Usage: make_fixture_xlsx.py [OUT]      (default budget.xlsx; needs XlsxWriter; the output is deterministic)
 
+XlsxWriter asks Excel to recalculate on open (`fullCalcOnLoad`); Excel does not once it has saved the workbook, so the
+flag is stripped: the workbook starts with fresh cached values, `recalculation_needed` false and no formula `stale`,
+as a file saved by Excel. Only an edit then makes them stale, which is what the examples check.
+
 Sheets:
 - Budget: a merged title (row 1), a header (row 3), eight lines (rows 4 to 11) with Item, Team, Qty, Unit price,
   Total (a formula), Due (a date), Code (text, "007") and a Status; a total row (row 12) with SUM formulas; two notes
@@ -11,6 +15,7 @@ Sheets:
 """
 import datetime
 import sys
+import zipfile
 
 import xlsxwriter
 
@@ -69,4 +74,13 @@ notes.write_formula("B2", "VLOOKUP(B1,Budget!A4:E11,5,FALSE)", money, 40 * 82.40
 notes.write("A4", "Written by the field team on 2026-01-05.")
 notes.set_column("A:B", 24)
 wb.close()
+
+with zipfile.ZipFile(OUT) as z:
+    parts = [(info, z.read(info.filename)) for info in z.infolist()]
+with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
+    for info, data in parts:
+        if info.filename == "xl/workbook.xml":
+            assert b' fullCalcOnLoad="1"' in data
+            data = data.replace(b' fullCalcOnLoad="1"', b"")
+        z.writestr(info, data, zipfile.ZIP_DEFLATED)
 print(OUT)

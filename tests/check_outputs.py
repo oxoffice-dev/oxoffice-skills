@@ -276,8 +276,13 @@ assert formatted["Data"]["B2"].number_format == "#,##0.00" and formatted["Data"]
 assert formatted["Data"].row_dimensions[1].height == 24 and formatted["Summary"]["B1"].value == "=SUM(Data!B2:B3)"
 spilled = zipfile.ZipFile(x / "spilled.xlsx").read("xl/worksheets/sheet1.xml")
 assert b't="array"' in spilled and b'ref="D1:D2"' in spilled
-for name in ("libre.xlsx", "spilled.xlsx", "edited.xlsx"):
+for name in ("spilled.xlsx", "edited.xlsx", "kept.xlsx", "dropped.xlsx", "valued.xlsx"):
     oxoffice.xlsx.Workbook(x / name)               # still opens as a workbook
-libre = oxoffice.xlsx.Workbook(x / "libre.xlsx").sheet("Data")
-assert libre.cell("C1").formula == "B2*2"
+assert b"fullCalcOnLoad" not in zipfile.ZipFile(x / "budget.xlsx").read("xl/workbook.xml")   # the fixture is fresh
+cached = lambda name: openpyxl.load_workbook(x / name, data_only=True)["Budget"]["E4"].value
+assert cached("budget.xlsx") == 8400 and cached("kept.xlsx") == 8400 and cached("dropped.xlsx") is None
+assert openpyxl.load_workbook(x / "dropped.xlsx")["Budget"]["E4"].value == "=C4*D4"          # the formula stays
+assert read("edited.xlsx")["Summary"]["B2"].value == "='Q1 notes'!B2*2"
+assert read("written.xlsx")["Budget"]["J5"].value == "='Q1 notes'!B2+E5"
+assert read("valued.xlsx")["Budget"]["F12"].value == 61647
 print("every example output as described")
