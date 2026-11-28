@@ -2,7 +2,7 @@
   "name": "oxoffice",
   "displayName": "oxoffice",
   "version": "2026.11.28",
-  "description": "Read, write, edit, review and render Word and PowerPoint files, and read and edit Excel workbooks, with the oxoffice CLI and Python package.",
+  "description": "Read, write, edit, review and render Word and PowerPoint files, and read, edit, calculate and render Excel workbooks, with the oxoffice CLI and Python package.",
   "author": {"name": "oxoffice contributors"},
   "homepage": "https://github.com/oxoffice-dev/oxoffice-skills",
   "repository": "https://github.com/oxoffice-dev/oxoffice-skills",
