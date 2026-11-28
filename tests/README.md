@@ -8,8 +8,8 @@ every pull request and every night:
 | File | What |
 | --- | --- |
 | `check_install.py` | runs every way of installing oxoffice that `references/install.md` documents, as written (Git Bash substitutions on Windows), and checks `ox --version` and `oxpy` give the floor or a later version; Linux, macOS, Windows (conda only where the runner has it, with a warning elsewhere) |
-| `make_fixtures.py` | writes the inputs of the examples: `report.docx`, `deck.pptx`, `Aileron-Regular.ttf`, `photo.png` |
-| `fixtures/make_fixture_{docx,pptx}.py` | the synthetic report and deck, with the traits of files saved by Word and Google Docs |
+| `make_fixtures.py` | writes the inputs of the examples: `report.docx`, `deck.pptx`, `budget.xlsx`, `Aileron-Regular.ttf`, `photo.png` |
+| `fixtures/make_fixture_{docx,pptx,xlsx}.py` | the synthetic report, deck and budget workbook, the first two with the traits of files saved by Word and Google Docs, the last as XlsxWriter writes it |
 | `run_examples.py` | runs every python and bash block of each skill's `references/examples.md`, in order, or `--jobs N` at a time |
 | `check_outputs.py` | checks the files the examples wrote |
 | `check_names.py` | checks that every function, keyword, attribute, command and flag the skills cite exists |
@@ -18,7 +18,7 @@ Locally, in a new virtual environment (about 20 seconds for the examples, a few 
 
 ```bash
 pip install --require-hashes -r tests/requirements.txt
-pip install oxoffice==0.6.0            # the floor (or oxoffice, the latest), in a second call: the first checks hashes
+pip install oxoffice==0.9.0            # the floor (or oxoffice, the latest), in a second call: the first checks hashes
 python tests/make_fixtures.py /tmp/skills/fixtures
 python tests/run_examples.py --jobs 4 --skills plugin/skills --fixtures /tmp/skills/fixtures --work /tmp/skills
 python tests/check_outputs.py /tmp/skills

@@ -25,4 +25,4 @@ Setup and in the README, not in the plugin version.
    the merge, then delete `wip/port-skills`.
 3. Tag the merge commit `vYYYY.M.D` and publish a GitHub release: what changed for an agent, the oxoffice version.
 4. In a fresh Claude Code session: `/plugin marketplace add oxoffice-dev/oxoffice-skills`, `/plugin install
-   oxoffice@oxoffice-skills`, then one Word task and one PowerPoint task, each on a file the skill has not seen.
+   oxoffice@oxoffice-skills`, then one Word task, one PowerPoint task and one Excel task, each on a file the skill has not seen.

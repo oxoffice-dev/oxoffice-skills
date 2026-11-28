@@ -1,5 +1,8 @@
 # What the example checks need beside oxoffice: Pillow (the fixtures), python-docx and python-pptx (the fixtures
-# and check_outputs.py). oxoffice itself is installed at the version the skills pin, in a second call.
+# and check_outputs.py), XlsxWriter (the workbook fixture) and openpyxl (check_outputs.py reads workbooks with a
+# second library). oxoffice itself is installed at the version the skills pin, in a second call.
 pillow
 python-docx
 python-pptx
+xlsxwriter
+openpyxl

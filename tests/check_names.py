@@ -18,12 +18,15 @@ from pathlib import Path
 import oxoffice
 import oxoffice.docx
 import oxoffice.pptx
+import oxoffice.xlsx
 
 SKILLS = Path(sys.argv[1]).resolve()
 OX = shutil.which("oxoffice")
 DOCS = sorted(SKILLS.glob("*/SKILL.md")) + sorted(SKILLS.glob("*/references/*.md"))
 # python-pptx, python-docx, lxml and standard library names the skills cite on purpose
-FOREIGN = {"Presentation", "Document", "fromstring", "tostring", "xpath", "related_part", "ZipFile", "unpack"}
+FOREIGN = {"Presentation", "Document", "fromstring", "tostring", "xpath", "related_part", "ZipFile", "unpack", "Path"}
+# worksheet functions the xlsx skill writes in formulas
+FOREIGN |= {"IF", "SUM", "SORT", "XLOOKUP", "VLOOKUP", "DATE", "LET", "LAMBDA"}
 stats = {"spans": 0, "calls": 0, "keywords": 0, "cli_spans": 0, "flags": 0}
 
 
@@ -136,7 +139,7 @@ def subcommands(help_text):
 def cli_problems(path):
     for n, span, _ in spans(path):
         tokens = span.replace("[", " ").replace("]", " ").split()
-        if len(tokens) < 2 or tokens[0] not in ("oxoffice", "ox") or tokens[1] not in ("docx", "pptx"):
+        if len(tokens) < 2 or tokens[0] not in ("oxoffice", "ox") or tokens[1] not in ("docx", "pptx", "xlsx"):
             continue
         stats["cli_spans"] += 1
         commands, i = [(tokens[1],)], 2
@@ -182,7 +185,7 @@ def attribute_problems(path):
         code = re.sub(r"\"[^\"]*\"|'[^']*'", "''", span)
         for attr in re.findall(r"(?<=[\w)\]])\.([A-Za-z_]\w*)(?!\w*\*)", code):
             # file extensions, python-pptx's private attributes, placeholders such as MSO_SHAPE.X
-            if (attr in ("md", "py", "json", "docx", "pptx", "dotx", "potx", "xml", "png", "pdf", "ttf", "pyi")
+            if (attr in ("md", "py", "json", "docx", "pptx", "xlsx", "xlsm", "xltx", "xltm", "csv", "tsv", "dotx", "potx", "xml", "png", "pdf", "ttf", "pyi")
                     or attr.startswith("_") or re.fullmatch(r"[A-Z]", attr) or attr in FOREIGN):
                 continue
             stats["attributes"] += 1
@@ -233,7 +236,7 @@ def python_surface(module):
     return {f"{module.__name__}.{obj.__name__}": names for obj, names in classes.items()}
 
 
-for module, skill in ((oxoffice.docx, "docx"), (oxoffice.pptx, "pptx")):
+for module, skill in ((oxoffice.docx, "docx"), (oxoffice.pptx, "pptx"), (oxoffice.xlsx, "xlsx")):
     words = set(re.findall(r"[A-Za-z_]\w*", skill_code(skill)))
     missing = sorted(k for k, names in python_surface(module).items() if not names & words and k not in NOT_DOCUMENTED)
     print(f"{skill}: public classes not cited: {missing}")
