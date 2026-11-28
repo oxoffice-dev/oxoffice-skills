@@ -1,5 +1,5 @@
 """Check what the skill examples wrote, after run_examples.py: the files each example promises, with the
-content it describes. Reads them with oxoffice, python-docx and python-pptx. A document's paragraphs are read from
+content it describes. Reads them with oxoffice, python-docx, python-pptx and openpyxl. A document's paragraphs are read from
 `oxoffice docx text --json` (one call per file, cached): on a build with debug assertions, walking `Document.paragraphs`
 costs tens of milliseconds per paragraph, minutes for the whole check.
 
@@ -15,10 +15,12 @@ import zipfile
 from pathlib import Path
 
 import docx
+import openpyxl
 import pptx
 
 import oxoffice.docx
 import oxoffice.pptx
+import oxoffice.xlsx
 
 WORK = Path(sys.argv[1])
 d = WORK / "docx"
@@ -240,4 +242,42 @@ assert [pic.bytes == photo for pic in oxoffice.docx.Document.open(d / "picture-a
 replaced = next(sh for sh in pptx.Presentation(p / "picture.pptx").slides[0].shapes if sh.shape_type == 13)
 assert replaced.image.blob == (p / "photo.png").read_bytes()
 assert json.loads((p / "structure.json").read_text())["slide_details"][3]["shape_details"]
+# ---- xlsx: read back with openpyxl (formulas, not cached values) and oxoffice
+x = WORK / "xlsx"
+read = lambda name: openpyxl.load_workbook(x / name)
+source = zipfile.ZipFile(x / "budget.xlsx")
+edited_book = read("edited.xlsx")
+assert edited_book.sheetnames == ["Budget", "Q1 notes", "Summary"]
+budget = edited_book["Budget"]
+assert budget["C4"].value == 3 and budget["E4"].value == "=C4*D4" and budget["H4"].value == "Invoiced"
+assert budget["I4"].value == '=IF(F4<DATE(2026,3,1),"yes","no")' and budget["H5"].value is None
+assert budget["A3"].font.bold and budget["A3"].fill.fgColor.rgb.endswith("FFFF00") and budget.freeze_panes == "A4"
+assert budget["D6"].comment is not None and budget["D6"].comment.text == "Quote from the designer, valid until March."
+assert edited_book["Summary"]["B1"].value == "=SUM(Budget!E4:E11)"
+assert [str(r) for r in budget.merged_cells.ranges] == ["A1:H1"]
+for part in ("xl/theme/theme1.xml", "docProps/core.xml", "xl/comments1.xml"):   # parts no edit touches: same bytes
+    assert zipfile.ZipFile(x / "edited.xlsx").read(part) == source.read(part), part
+assert read("qty.xlsx")["Budget"]["C4"].value == 3
+code = read("code.xlsx")["Budget"]["G4"]
+assert code.value == "008" and code.data_type == "s"
+written = read("written.xlsx")["Budget"]
+assert written["G5"].value == "013" and written["F5"].value.date().isoformat() == "2026-02-27"
+assert written["E14"].value == "=E12*0.1" and written["E15"].value is None and written["E14"].font.bold
+assert written["J4"].value == "=_xlfn.XLOOKUP(A4,A4:A11,E4:E11)"
+assert written.column_dimensions["A"].width >= 28 and written["A3"].alignment.horizontal == "center"
+merged = read("merged.xlsx")["Q1 notes"]
+assert [c.value for c in merged[7]][:2] == ["north", 12] and [c.value for c in merged[8]][:2] == ["south", "007"]
+assert (x / "budget.tsv").read_text(encoding="utf-8").splitlines()[3].startswith("Survey of the river bank\tField\t2\t")
+built = read("built.xlsx")
+assert built.sheetnames == ["Data", "Notes", "Summary"]
+assert built["Data"]["A1"].font.bold and built["Data"].freeze_panes == "A2" and built["Data"]["B2"].value == 1200.5
+formatted = read("formatted.xlsx")
+assert formatted["Data"]["B2"].number_format == "#,##0.00" and formatted["Data"].column_dimensions["A"].width >= 16
+assert formatted["Data"].row_dimensions[1].height == 24 and formatted["Summary"]["B1"].value == "=SUM(Data!B2:B3)"
+spilled = zipfile.ZipFile(x / "spilled.xlsx").read("xl/worksheets/sheet1.xml")
+assert b't="array"' in spilled and b'ref="D1:D2"' in spilled
+for name in ("libre.xlsx", "spilled.xlsx", "edited.xlsx"):
+    oxoffice.xlsx.Workbook(x / name)               # still opens as a workbook
+libre = oxoffice.xlsx.Workbook(x / "libre.xlsx").sheet("Data")
+assert libre.cell("C1").formula == "B2*2"
 print("every example output as described")

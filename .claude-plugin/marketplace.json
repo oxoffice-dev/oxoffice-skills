@@ -4,13 +4,13 @@
     "name": "oxoffice contributors"
   },
   "metadata": {
-    "description": "Word and PowerPoint skills for AI agents, built on the oxoffice CLI and Python package."
+    "description": "Word, PowerPoint and Excel skills for AI agents, built on the oxoffice CLI and Python package."
   },
   "plugins": [
     {
       "name": "oxoffice",
       "source": "./plugin",
-      "description": "Word and PowerPoint files with oxoffice: read, write, edit, comments, tracked changes, redlines, rendering."
+      "description": "Word, PowerPoint and Excel files with oxoffice: read, write, edit, comments, tracked changes, redlines, rendering, spreadsheets."
     }
   ]
 }

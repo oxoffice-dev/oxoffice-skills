@@ -5,7 +5,7 @@ under `bash -euo pipefail`, with what the skills' Setup defines: the shell funct
 `oxpy` (a Python that imports oxoffice), SKILL (the skill's folder) and PYTHONPATH (its scripts). Each block's code
 and output go to WORK/<skill>/_blockNN.log.
 
-    python tests/run_examples.py --skills SKILLS_DIR --fixtures DIR --work DIR [--jobs N] [docx] [pptx]
+    python tests/run_examples.py --skills SKILLS_DIR --fixtures DIR --work DIR [--jobs N] [docx] [pptx] [xlsx]
 
 With --jobs 1 (the default) the blocks run in order. With more, up to N blocks run at once: a block starts once every
 earlier block that names one of its files (report.docx, "no-break-{i}.docx"...) is done. A missed link almost always
@@ -32,12 +32,12 @@ import textwrap
 import time
 from pathlib import Path
 
-FIXTURES = ("report.docx", "deck.pptx", "Aileron-Regular.ttf", "photo.png")
+FIXTURES = ("report.docx", "deck.pptx", "budget.xlsx", "Aileron-Regular.ttf", "photo.png")
 TIMEOUT = 600   # seconds a block may take
 # A file a block reads or writes, as the block spells it: a name with one of these extensions, with or without
 # f-string fields or a glob. The module names are not files.
-FILE = re.compile(r"[\w.{}*\-]+\.(?:docx|dotx|docm|pptx|potx|pptm|pdf|png|jpg|svg|html|md|json|txt|ttf|xml|csv)\b")
-MODULES = {"oxoffice.docx", "oxoffice.pptx"}
+FILE = re.compile(r"[\w.{}*\-]+\.(?:docx|dotx|docm|pptx|potx|pptm|xlsx|xlsm|xltx|xltm|pdf|png|jpg|svg|html|md|json|txt|ttf|xml|csv|tsv)\b")
+MODULES = {"oxoffice.docx", "oxoffice.pptx", "oxoffice.xlsx"}
 
 
 def files_named(code):
@@ -134,7 +134,7 @@ def main() -> int:
     ap.add_argument("--fixtures", type=Path, required=True)
     ap.add_argument("--work", type=Path, required=True)
     ap.add_argument("--jobs", type=int, default=1, help="blocks run at once (default 1: in order)")
-    ap.add_argument("names", nargs="*", default=["docx", "pptx"])
+    ap.add_argument("names", nargs="*", default=["docx", "pptx", "xlsx"])
     args = ap.parse_args()
 
     failed = 0

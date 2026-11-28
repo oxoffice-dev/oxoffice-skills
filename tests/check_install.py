@@ -1,6 +1,6 @@
 """Run every way of installing oxoffice that the skills document (references/install.md, the same in both skills),
 as written, and check that each gives the version the skills ask for, their floor (`oxoffice>=X` in their Setup) or
-a later one: `ox --version` and, where the way defines it, `oxpy` importing oxoffice.docx and oxoffice.pptx.
+a later one: `ox --version` and, where the way defines it, `oxpy` importing oxoffice.docx, oxoffice.pptx and oxoffice.xlsx.
 
     python tests/check_install.py plugin/skills
 
@@ -62,7 +62,7 @@ def check(version, has_oxpy):
     at_least = f'[ "$(printf "%s\\n" "{version}" "$v" | sort -V | head -n 1)" = "{version}" ]'
     lines = [f'v="$(ox --version {strip}', '[ "${v#oxoffice }" != "$v" ]', 'v="${v#oxoffice }"', at_least]
     if has_oxpy:
-        code = "import oxoffice, oxoffice.docx, oxoffice.pptx; print(oxoffice.__version__)"
+        code = "import oxoffice, oxoffice.docx, oxoffice.pptx, oxoffice.xlsx; print(oxoffice.__version__)"
         lines += [f"v=\"$(oxpy -c '{code}' {strip}", at_least]
     return "\n".join(lines) + "\n"
 
@@ -77,8 +77,8 @@ def run(title, script, env):
 def main():
     version = floor()
     text = (SKILLS / "docx" / "references" / "install.md").read_text()
-    other = (SKILLS / "pptx" / "references" / "install.md").read_text()
-    assert text == other, "the two skills' install.md differ"
+    for name in ("pptx", "xlsx"):
+        assert text == (SKILLS / name / "references" / "install.md").read_text(), f"install.md of docx and {name} differ"
     found = ways(text)
     assert {title for title, _ in found} == EXPECTED, (
         f"install.md ways: {sorted(t for t, _ in found)}, expected {sorted(EXPECTED)}")
