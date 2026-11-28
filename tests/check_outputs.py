@@ -276,13 +276,31 @@ assert formatted["Data"]["B2"].number_format == "#,##0.00" and formatted["Data"]
 assert formatted["Data"].row_dimensions[1].height == 24 and formatted["Summary"]["B1"].value == "=SUM(Data!B2:B3)"
 spilled = zipfile.ZipFile(x / "spilled.xlsx").read("xl/worksheets/sheet1.xml")
 assert b't="array"' in spilled and b'ref="D1:D2"' in spilled
-for name in ("spilled.xlsx", "edited.xlsx", "kept.xlsx", "dropped.xlsx", "valued.xlsx"):
+for name in ("spilled.xlsx", "edited.xlsx", "kept.xlsx", "dropped.xlsx"):
     oxoffice.xlsx.Workbook(x / name)               # still opens as a workbook
 assert b"fullCalcOnLoad" not in zipfile.ZipFile(x / "budget.xlsx").read("xl/workbook.xml")   # the fixture is fresh
 cached = lambda name: openpyxl.load_workbook(x / name, data_only=True)["Budget"]["E4"].value
-assert cached("budget.xlsx") == 8400 and cached("kept.xlsx") == 8400 and cached("dropped.xlsx") is None
+assert cached("budget.xlsx") == 8400 and cached("kept.xlsx") == 12600 and cached("dropped.xlsx") is None   # calculated, or emptied
 assert openpyxl.load_workbook(x / "dropped.xlsx")["Budget"]["E4"].value == "=C4*D4"          # the formula stays
 assert read("edited.xlsx")["Summary"]["B2"].value == "='Q1 notes'!B2*2"
 assert read("written.xlsx")["Budget"]["J5"].value == "='Q1 notes'!B2+E5"
-assert read("valued.xlsx")["Budget"]["F12"].value == 61647
+# the 0.10.0 sections: structure, objects, notes, layout, compare, render
+cell = lambda name, sheet, ref: read(name)[sheet][ref].value
+assert read("renamed.xlsx").sheetnames == ["Budget", "Notes"] and read("hidden.xlsx")["Summary"].sheet_state == "hidden"
+assert cell("inserted.xlsx", "Budget", "E14") == "=SUM(E4:E13)" and cell("inserted.xlsx", "Q1 notes", "B2").endswith("A4:E13,5,FALSE)")
+assert cell("gone.xlsx", "Summary", "B2") == "=#REF!*2"
+assert openpyxl.load_workbook(x / "gone-calc.xlsx", data_only=True)["Summary"]["B2"].value == "#REF!"
+objects = read("objects.xlsx")
+assert sorted(objects.defined_names) == ["Lines", "TaxRate"] and list(objects["Budget"].tables) == ["Costs"]
+assert len(objects["Budget"].data_validations.dataValidation) == 2 and len(objects["Budget"].conditional_formatting) == 2
+orders = read("sales.xlsx")["Sales"]
+assert list(orders.tables) == ["Orders"] and orders.tables["Orders"].totalsRowCount == 1 and orders["A5"].value == "Total"
+assert orders["C5"].value == "=SUBTOTAL(109,Orders[Amount])"
+comments = read("comments.xlsx")["Budget"]
+assert comments["E12"].comment.text.endswith("signed budget.") and comments["D6"].comment.author == "Ada"
+assert read("note-edited.xlsx")["Budget"]["D6"].comment.text == "Quote valid until April."
+assert "A13:D13" in [str(r) for r in read("merged-cells.xlsx")["Budget"].merged_cells.ranges]
+assert read("frozen.xlsx")["Budget"].freeze_panes == "B4" and read("grouped.xlsx")["Budget"].row_dimensions[4].outlineLevel == 1
+assert read("layout.xlsx")["Budget"].auto_filter.ref == "A3:H11" and read("layout.xlsx")["Budget"].freeze_panes == "B4"
+assert (x / "budget.pdf").read_bytes().startswith(b"%PDF") and (x / "page.png").read_bytes()[1:4] == b"PNG"
 print("every example output as described")

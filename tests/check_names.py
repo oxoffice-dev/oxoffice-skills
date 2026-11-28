@@ -26,7 +26,7 @@ DOCS = sorted(SKILLS.glob("*/SKILL.md")) + sorted(SKILLS.glob("*/references/*.md
 # python-pptx, python-docx, lxml and standard library names the skills cite on purpose
 FOREIGN = {"Presentation", "Document", "fromstring", "tostring", "xpath", "related_part", "ZipFile", "unpack", "Path"}
 # worksheet functions the xlsx skill writes in formulas
-FOREIGN |= {"IF", "SUM", "SORT", "XLOOKUP", "VLOOKUP", "DATE", "LET", "LAMBDA"}
+FOREIGN |= {"IF", "SUM", "SORT", "XLOOKUP", "VLOOKUP", "DATE", "LET", "LAMBDA", "UNIQUE", "STDEV", "SUMIF", "SUBTOTAL"}
 stats = {"spans": 0, "calls": 0, "keywords": 0, "cli_spans": 0, "flags": 0}
 
 
@@ -145,7 +145,14 @@ def cli_problems(path):
         commands, i = [(tokens[1],)], 2
         while i < len(tokens):
             known = set.union(*(subcommands(cli_help(*c) or "") for c in commands))
-            words = tokens[i].split("/")
+            words = re.split(r"\\?\||/", tokens[i])
+            if known and not all(w in known for w in words):
+                # `xlsx sheet F rename ...`: the file comes before the subcommand
+                for k in range(i + 1, min(i + 3, len(tokens))):
+                    ahead = re.split(r"\\?\||/", tokens[k])
+                    if not tokens[k].startswith("-") and all(w in known for w in ahead):
+                        i, words = k, ahead
+                        break
             if not known or not all(w in known for w in words):
                 break
             commands = [c + (w,) for c in commands for w in words if w in subcommands(cli_help(*c) or "")]
@@ -153,7 +160,7 @@ def cli_problems(path):
         # a command that has subcommands takes one: a lowercase word there that is not one is a wrong command
         known = set.union(*(subcommands(cli_help(*c) or "") for c in commands))
         if known and i < len(tokens) and re.fullmatch(r"[a-z][a-z-]*(/[a-z][a-z-]*)*", tokens[i]):
-            wrong = [w for w in tokens[i].split("/") if w not in known]
+            wrong = [w for w in re.split(r"\\?\||/", tokens[i]) if w not in known]
             yield f"{rel(path)}:{n}: no command oxoffice {' '.join(commands[0])} {'/'.join(wrong)}: `{span}`"
             continue
         helps = [cli_help(*c) or "" for c in commands]
@@ -248,8 +255,11 @@ for module, skill in ((oxoffice.docx, "docx"), (oxoffice.pptx, "pptx"), (oxoffic
         for sub in sorted(subcommands(cli_help(*command) or "")):
             walk(command + (sub,))
     walk((skill,))
-    uncited = [" ".join(c) for c in sorted(surface) if len(c) > 1
-               and not re.search(r"oxoffice " + r"\s+".join(map(re.escape, c)) + r"(?![\w-])", code)]
+    def cited(c):
+        # `oxoffice xlsx sheet F rename ...`: the file may stand between a command and its subcommand
+        pattern = r"oxoffice " + r"(?:\s+\S+){0,2}?[\s|/]+".join(map(re.escape, c)).replace(r"oxoffice ", "oxoffice ", 1) + r"(?![\w-])"
+        return re.search(pattern.replace(r"[\s|/]+", r"(?:\s|\\?\||/)+"), code)
+    uncited = [" ".join(c) for c in sorted(surface) if len(c) > 1 and not cited(c)]
     print(f"{skill}: CLI commands not cited: {uncited}")
 
 sys.exit(1 if problems else 0)

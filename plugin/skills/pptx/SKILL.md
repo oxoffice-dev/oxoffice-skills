@@ -12,19 +12,19 @@ for every .pptx task. `oxoffice limitations pptx` lists what it cannot do yet; r
 
 ## Setup, once per session
 
-Needs **oxoffice** 0.9.0 or later (written and checked with 0.9.0): the one installed, else through a package
+Needs **oxoffice** 0.10.0 or later (written and checked with 0.10.0): the one installed, else through a package
 manager. Take the first way that works, keep it. Each defines two shell functions (bash, zsh): `ox`, the CLI, and
 `oxpy`, a Python with oxoffice. Shell state is lost between tool calls: define them first.
 
 1. **Already installed**: `oxoffice --version` and `python3 -c "import oxoffice; print(oxoffice.__version__)"`
-   both print 0.9.0 or later: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`. Older: leave it.
-2. **uv**: `ox() { uvx --python '>=3.10' --from 'oxoffice>=0.9.0' oxoffice "$@"; }`,
-   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with 'oxoffice>=0.9.0' python "$@"; }`.
+   both print 0.10.0 or later: `ox() { oxoffice "$@"; }; oxpy() { PYTHONUTF8=1 python3 "$@"; }`. Older: leave it.
+2. **uv**: `ox() { uvx --python '>=3.10' --from 'oxoffice>=0.10.0' oxoffice "$@"; }`,
+   `oxpy() { PYTHONUTF8=1 uv run --no-project --python '>=3.10' --with 'oxoffice>=0.10.0' python "$@"; }`.
 3. **pip in a virtual environment** of its own, made once (`Scripts` for `bin` on Windows):
 
    ```bash
    V="${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv"
-   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q 'oxoffice>=0.9.0'; }
+   [ -x "$V/bin/oxoffice" ] || { python3 -m venv "$V" && "$V/bin/pip" install -q 'oxoffice>=0.10.0'; }
    ox() { "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv/bin/oxoffice" "$@"; }
    oxpy() { PYTHONUTF8=1 "${XDG_CACHE_HOME:-$HOME/.cache}/oxoffice-venv/bin/python" "$@"; }
    ```
@@ -134,5 +134,5 @@ When oxoffice fails, refuses, loses data, renders wrong, or lacks an API you nee
 list it: reduce it to a **neutral reproduction**, a short script that builds its own input (python-pptx is fine)
 and prints the wrong result next to the expected one, never the user's deck, text, names or paths. Ask the user,
 then write it as `oxoffice-findings/YYYY-MM-DD-<slug>.md` in the working folder (what, expected, observed, the
-script, `ox --version`: a version after 0.9.0 may be the cause), or give it in the reply. Do not open issues
+script, `ox --version`: a version after 0.10.0 may be the cause), or give it in the reply. Do not open issues
 yourself.

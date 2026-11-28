@@ -4,8 +4,8 @@
 
 # oxoffice-skills
 
-**Word, PowerPoint and Excel skills for AI agents: read, write, edit, review and render `.docx` and `.pptx` files, read
-and edit `.xlsx` workbooks, with [oxoffice](https://github.com/oxoffice-dev/oxoffice).**
+**Word, PowerPoint and Excel skills for AI agents: read, write, edit, review and render `.docx` and `.pptx` files, and read,
+edit, calculate and render `.xlsx` workbooks, with [oxoffice](https://github.com/oxoffice-dev/oxoffice).**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-22c55e)](https://github.com/oxoffice-dev/oxoffice-skills/blob/main/LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-0ea5a4)](#-install)
@@ -33,13 +33,15 @@ python-pptx, openpyxl or hand-written XML.
 - ✍️ **Safe edits**: counted find and replace across runs, text edited without losing its formatting, and the input
   never written over.
 - 🔍 **Real tracked changes**: list, accept and reject revisions, and build a redline of two versions.
-- 📌 **Stable, not frozen**: the skills are written and checked with oxoffice 0.9.0 and run any later release,
+- 📌 **Stable, not frozen**: the skills are written and checked with oxoffice 0.10.0 and run any later release,
   so a new oxoffice does not wait for a new plugin; CI runs every example against both, every night.
 - 🧪 **Examples that run**: every example of the skills runs on each push to oxoffice's `main`, against the build
   of that commit.
 - 📗 **Workbooks without losing anything**: cells, formulas, styles and notes are read as Excel shows them, edited in
-  place with every other part kept byte for byte, and written new from a CSV or from code. oxoffice does not
-  recalculate: Excel and Google Sheets do it on open, and the skill says so.
+  place with every other part kept byte for byte, and written new from a CSV or from code. Formulas are calculated
+  (the 84 everyday functions; the rest is told as skipped), sheets, rows and columns move with every reference
+  following, names, tables, validation, conditional formats and comments are written, two workbooks are compared, and
+  a workbook renders to PDF or PNG.
 - 🩹 **Honest about gaps**: `oxoffice limitations` lists what the build cannot do yet, each with a workaround, and
   the skills hand that one step to the built-in skills.
 
@@ -52,7 +54,7 @@ In Claude Code:
 /plugin install oxoffice@oxoffice-skills
 ```
 
-oxoffice is the one prerequisite, 0.9.0 or later (the skills are written and checked with 0.9.0). The skills use
+oxoffice is the one prerequisite, 0.10.0 or later (the skills are written and checked with 0.10.0). The skills use
 the `oxoffice` already installed, else get it through `uv`, `pip`, `pixi` or `conda`. Without any of them, they
 tell you how to install it from its [official instructions](https://github.com/oxoffice-dev/oxoffice#-install) and
 fall back to the built-in Word, PowerPoint and Excel skills meanwhile.
@@ -74,7 +76,7 @@ Details in [`skills/docx/references/install.md`](skills/docx/references/install.
 | --- | --- |
 | [`skills/docx/`](skills/docx/) | the Word skill: reading, writing, editing, comments, tracked changes, redlines, conversions |
 | [`skills/pptx/`](skills/pptx/) | the PowerPoint skill: reading, building, editing, rendering, merging decks |
-| [`skills/xlsx/`](skills/xlsx/) | the Excel skill: reading cells, formulas and styles, writing values and formulas, CSV in and out, new workbooks |
+| [`skills/xlsx/`](skills/xlsx/) | the Excel skill: reading and writing cells, formulas (calculated) and styles, sheets, rows and columns, tables, validation, comments, diff, PDF and PNG render, CSV in and out, new workbooks |
 | `skills/*/references/` | the CLI and Python references, the examples, how to run oxoffice |
 
 ## 🔒 Privacy
